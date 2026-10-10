@@ -221,6 +221,7 @@ public:
             glDeleteVertexArrays(1, &hud_vao);
             glDeleteProgram(loading_program);
             glDeleteVertexArrays(1, &loading_vao);
+            glDeleteTextures(1, &loading_texture);
             DoneCurrent();
             Cleanup(eglDestroyContext(display, hud_context), "HUD context");
         }
@@ -348,8 +349,11 @@ private:
         SCOPE_EXIT { Cleanup(eglMakeCurrent(display, surface, surface, context), "loading restore"); };
         if (!loading_program) {
             const std::string fragment = std::string("#version 330 core\n") + kLoadingSceneGlsl +
-                "uniform vec2 size; uniform float seconds; uniform uint state[24]; out vec4 color;\n"
-                "void main(){ color = vec4(loading_scene(gl_FragCoord.xy, size, seconds, state), 1.0); }\n";
+                "uniform vec2 size; uniform float seconds; uniform uint state[24]; uniform sampler2D picture;\n"
+                "uniform float has_picture; out vec4 color;\n"
+                // The picture's rows are top first; this picture's are bottom first.
+                "void main(){ vec4 p = vec4(texture(picture, vec2(gl_FragCoord.x / size.x, 1.0 - gl_FragCoord.y / size.y)).rgb, has_picture);\n"
+                "    color = vec4(loading_scene(gl_FragCoord.xy, size, seconds, state, p), 1.0); }\n";
             const char* sources[]{
                 "#version 330 core\nvoid main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);"
                 "gl_Position=vec4(p*2.0-1.0,0.0,1.0);}",
@@ -384,6 +388,26 @@ private:
             }
             loading_program = program;
             glGenVertexArrays(1, &loading_vao);
+            // The picture behind it (hud.h); without it the scene keeps its own dark backdrop.
+            const std::vector<uint8_t> picture = Loading::ReadPicture();
+            if (!picture.empty()) {
+                while (glGetError() != GL_NO_ERROR) {} // only this upload's errors are looked at below
+                glGenTextures(1, &loading_texture);
+                glBindTexture(GL_TEXTURE_2D, loading_texture);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Loading::kPictureWidth, Loading::kPictureHeight, 0, GL_RGBA,
+                             GL_UNSIGNED_BYTE, picture.data());
+                if (glGetError() != GL_NO_ERROR) {
+                    Report("loading screen", "The loading picture could not be made; showing the dark backdrop");
+                    glDeleteTextures(1, &loading_texture);
+                    loading_texture = 0;
+                }
+            }
+            std::printf("EDEN_LOADING picture=%d\n", loading_texture != 0);
         }
         EGLint width{}, height{};
         Check(eglQuerySurface(display, surface, EGL_WIDTH, &width) &&
@@ -398,6 +422,10 @@ private:
         // What the start is doing (hud.h).
         const auto state = Loading::State();
         glUniform1uiv(glGetUniformLocation(loading_program, "state[0]"), state.size(), state.data());
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, loading_texture);
+        glUniform1i(glGetUniformLocation(loading_program, "picture"), 0);
+        glUniform1f(glGetUniformLocation(loading_program, "has_picture"), loading_texture != 0 ? 1.0f : 0.0f);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glFlush();
         return true;
@@ -466,7 +494,7 @@ private:
     bool loading{true}, loading_failed{};
     double loading_start{-1};
     LoadingPace loading_pace;
-    GLuint loading_program{}, loading_vao{};
+    GLuint loading_program{}, loading_vao{}, loading_texture{};
     unsigned startup_guest_frames{};
     StartupGate startup_gate;
     HudClock clock;

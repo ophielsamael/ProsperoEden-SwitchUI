@@ -7,7 +7,11 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <fstream>
 #include <string_view>
+#include <vector>
+
+#include "storage_paths.h"
 
 namespace Eden {
 // Counts contiguous presentation intervals; loading gaps are never reported as FPS.
@@ -148,6 +152,23 @@ inline std::array<uint32_t, 24> State() {
     state[4] = static_cast<uint32_t>(std::clamp<int64_t>((now - since.load(std::memory_order_relaxed)) / 1000, 0, 99999));
     return state;
 }
+// The picture behind the loading screen (tools/launcher/render-art.py): raw RGBA, top row first,
+// as the renderers upload it; they have no decoder at hand.
+inline constexpr uint32_t kPictureWidth = 1920, kPictureHeight = 1080;
+// Its pixels; none when the file is missing or of another size, and the screen keeps its own
+// dark backdrop.
+inline std::vector<uint8_t> ReadPicture() {
+    std::vector<uint8_t> pixels(size_t{kPictureWidth} * kPictureHeight * 4);
+    std::ifstream file(AppFile("ui/art/loading-backdrop.rgba"), std::ios::binary);
+    if (!file.read(reinterpret_cast<char*>(pixels.data()), static_cast<std::streamsize>(pixels.size())) ||
+        file.peek() != std::char_traits<char>::eof())
+        pixels.clear();
+    return pixels;
+}
+// The Vulkan renderer's picture (vulkan_loading.inc makes it, vulkan_hud_prepare.inc and
+// vulkan_hud_draw.inc draw with it): its descriptor set and the set's layout as raw handles, 0
+// while there is none.
+inline uint64_t vulkan_picture_set{}, vulkan_picture_layout{};
 } // namespace Loading
 // The loading screen: the shader draws it from the time and that state (loading_scene.glsl).
 // `loading` carries the milliseconds since loading began, plus one; x and y carry the size of the

@@ -536,6 +536,18 @@ adapt('src/video_core/renderer_vulkan/vk_blit_screen.h',
 adapt('src/video_core/renderer_vulkan/renderer_vulkan.h',
       'include/video_core/renderer_vulkan/renderer_vulkan.h', [
     ('    void Composite(', '    void PresentLoading();\n    void Composite('),
+    # The picture behind the loading screen (vulkan_loading.inc). Declared last, so it is gone
+    # before the device and the allocator that made it.
+    ('    Frame applet_frame;\n};',
+     '    Frame applet_frame;\n\n'
+     '    bool loading_picture_tried = false;\n'
+     '    vk::Image loading_image;\n'
+     '    vk::ImageView loading_view;\n'
+     '    vk::Sampler loading_sampler;\n'
+     '    vk::DescriptorPool loading_pool;\n'
+     '    vk::DescriptorSetLayout loading_set_layout;\n'
+     '    vk::DescriptorSets loading_sets;\n'
+     '};'),
 ])
 adapt('src/video_core/renderer_vulkan/renderer_vulkan.cpp', 'vulkan_renderer.cpp', [
     ('#include "video_core/renderer_vulkan/renderer_vulkan.h"',
@@ -582,7 +594,8 @@ adapt('src/video_core/renderer_vulkan/present/window_adapt_pass.h',
     ('const Layout::FramebufferLayout& layout, Frame* dst);',
      'const Layout::FramebufferLayout& layout, Frame* dst, bool draw_hud = false);'),
     ('    vk::Pipeline coverage_pipeline;',
-     '    vk::Pipeline coverage_pipeline;\n    vk::PipelineLayout hud_layout;\n    vk::Pipeline hud_pipeline;'),
+     '    vk::Pipeline coverage_pipeline;\n    vk::PipelineLayout hud_layout;\n    vk::Pipeline hud_pipeline;\n'
+     '    vk::PipelineLayout loading_layout;\n    vk::Pipeline loading_pipeline;'),
 ])
 adapt('src/video_core/renderer_vulkan/present/window_adapt_pass.cpp', 'vulkan_window_adapt_pass.cpp', [
     ('#include "core/frontend/framebuffer_layout.h"',
@@ -601,14 +614,17 @@ adapt('src/video_core/renderer_vulkan/vk_blit_screen.cpp', 'vulkan_blit_screen.c
      'image_index, layers, framebuffers, layout, frame, draw_hud);'),
 ])
 shader_header = '#pragma once\n#include <cstdint>\n'
-for stage in ('vert', 'frag'):
-    binary = output / f'vulkan_hud.{stage}.spv'
-    subprocess.run(['glslangValidator', '-V', '--target-env', 'vulkan1.0',
+# The HUD's two stages, and its fragment stage again for the loading pipeline, which reads the
+# loading screen's picture (vulkan_hud.frag with EDEN_LOADING_PICTURE, vulkan_loading.inc).
+for name, stage, defines in (('HUD_VERT', 'vert', []), ('HUD_FRAG', 'frag', []),
+                             ('LOADING_FRAG', 'frag', ['-DEDEN_LOADING_PICTURE'])):
+    binary = output / f'vulkan_{name.lower()}.spv'
+    subprocess.run(['glslangValidator', '-V', '--target-env', 'vulkan1.0', *defines,
                     '-o', str(binary), str(port / f'vulkan_hud.{stage}')], check=True)
     subprocess.run(['spirv-val', '--target-env', 'vulkan1.0', str(binary)], check=True)
     data = binary.read_bytes()
     words = struct.unpack('<' + 'I' * (len(data) // 4), data)
-    shader_header += f'inline constexpr uint32_t EDEN_HUD_{stage.upper()}_SPV[] = {{\n'
+    shader_header += f'inline constexpr uint32_t EDEN_{name}_SPV[] = {{\n'
     shader_header += ','.join(hex(word) for word in words) + '\n};\n'
 path = output / 'vulkan_hud_shaders.h'
 if not path.exists() or path.read_text() != shader_header:
@@ -996,14 +1012,17 @@ adapt('src/video_core/renderer_vulkan/present/frame_gen.cpp', 'vulkan_frame_gen.
     }"""),
 ])
 shader_header = '#pragma once\n#include <cstdint>\n'
-for stage in ('vert', 'frag'):
-    binary = output / f'vulkan_hud.{stage}.spv'
-    subprocess.run(['glslangValidator', '-V', '--target-env', 'vulkan1.0',
+# The HUD's two stages, and its fragment stage again for the loading pipeline, which reads the
+# loading screen's picture (vulkan_hud.frag with EDEN_LOADING_PICTURE, vulkan_loading.inc).
+for name, stage, defines in (('HUD_VERT', 'vert', []), ('HUD_FRAG', 'frag', []),
+                             ('LOADING_FRAG', 'frag', ['-DEDEN_LOADING_PICTURE'])):
+    binary = output / f'vulkan_{name.lower()}.spv'
+    subprocess.run(['glslangValidator', '-V', '--target-env', 'vulkan1.0', *defines,
                     '-o', str(binary), str(port / f'vulkan_hud.{stage}')], check=True)
     subprocess.run(['spirv-val', '--target-env', 'vulkan1.0', str(binary)], check=True)
     data = binary.read_bytes()
     words = struct.unpack('<' + 'I' * (len(data) // 4), data)
-    shader_header += f'inline constexpr uint32_t EDEN_HUD_{stage.upper()}_SPV[] = {{\n'
+    shader_header += f'inline constexpr uint32_t EDEN_{name}_SPV[] = {{\n'
     shader_header += ','.join(hex(word) for word in words) + '\n};\n'
 path = output / 'vulkan_hud_shaders.h'
 if not path.exists() or path.read_text() != shader_header:

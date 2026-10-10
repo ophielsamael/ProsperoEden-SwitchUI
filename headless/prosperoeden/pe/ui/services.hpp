@@ -231,7 +231,6 @@ struct Recent
 {
     std::string file;
     std::string title;
-    std::string cover;
 };
 
 // The home screen's content.
@@ -247,13 +246,11 @@ struct Home
     bool last_caption_warning = false; // the caption says what is wrong with the game
     std::string last_cover;
     // What the last game comes with, when it can be started: its title ID, its update and DLC
-    // (as Game::addons) and the language it will use. Its mods are counted by the launcher.
+    // (as Game::addons) and the language it will use.
     std::uint64_t last_title_id = 0;
     std::string last_addons;
     std::string last_language;
-    int last_mods = 0;
-    int last_mods_on = 0;
-    std::vector<Recent> recents; // at most four
+    std::vector<Recent> recents; // the latest first: the carousel's order (Eden::kRecentGames at most)
     std::string system_status;
 };
 

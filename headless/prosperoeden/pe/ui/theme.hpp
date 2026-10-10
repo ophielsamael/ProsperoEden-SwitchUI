@@ -61,7 +61,14 @@ constexpr float kFocusSpring = 20.0f;
 constexpr float kCursorSpring = 26.0f;
 constexpr float kScrollSpring = 16.0f;
 constexpr float kScreenSeconds = 0.30f;
-constexpr float kLaunchSeconds = 0.95f;
+// The start screen (Launcher::draw_launch): the game's cover over its own blurred picture, then
+// dark, before the game's own loading screen takes over.
+constexpr float kLaunchSeconds = 1.6f;
+
+// The home carousel: square cards side by side, as many shown in full as fit the screen.
+constexpr float kCardSize = 380.0f;
+constexpr float kCardPitch = 412.0f;
+constexpr int kCardsShown = 4;
 
 } // namespace theme
 

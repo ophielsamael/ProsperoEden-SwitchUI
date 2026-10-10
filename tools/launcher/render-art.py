@@ -10,8 +10,11 @@
   brand.tga          the app icon, for the header and for games without cover art
   controller.tga     a controller in white on transparent, tinted by the home screen: 144x100,
                      twice the size it is drawn at
+  loading-backdrop.rgba  the picture behind a game's loading screen (headless/loading_scene.glsl),
+                     from sce_sys/loading-background-source.png: 1920x1080 RGBA, top row first,
+                     no header. The emulator's renderers read it as it is: they have no decoder.
 
-render-art.py [name...] renders only the named pictures (backdrop, brand, controller).
+render-art.py [name...] renders only the named pictures (backdrop, brand, controller, loading).
 """
 
 import sys
@@ -113,7 +116,7 @@ def controller():
 
 def main():
     ART.mkdir(parents=True, exist_ok=True)
-    wanted = set(sys.argv[1:]) or {"backdrop", "brand", "controller"}
+    wanted = set(sys.argv[1:]) or {"backdrop", "brand", "controller", "loading"}
     if "backdrop" in wanted:
         source = Image.open(ROOT / "sce_sys/background-source.png").convert("RGB")
         art = backdrop(source)
@@ -126,6 +129,11 @@ def main():
         save_tga(icon.resize((384, 384), Image.Resampling.LANCZOS), "brand.tga")
     if "controller" in wanted:
         save_tga(controller(), "controller.tga")
+    if "loading" in wanted:
+        source = Image.open(ROOT / "sce_sys/loading-background-source.png").convert("RGBA")
+        picture = source.resize((1920, 1080), Image.Resampling.LANCZOS)
+        (ART / "loading-backdrop.rgba").write_bytes(picture.tobytes())
+        print(f"loading-backdrop.rgba: {picture.size[0]}x{picture.size[1]}")
 
 
 if __name__ == "__main__":

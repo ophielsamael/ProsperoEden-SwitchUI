@@ -1,10 +1,11 @@
-// ProsperoEden - The launcher: home, library, settings and their dialogs.
+// ProsperoEden - The launcher: the home carousel, settings and their dialogs.
 // Copyright (C) 2026 BlackBearReloaded
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "pe/ui/launcher.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace pe::ui
 {
@@ -38,8 +39,11 @@ Launcher::Launcher(Services &services, Textures &textures, const Fonts &fonts, b
     apply_look();
     read_profiles();
     read_home();
-    const bool continue_ready = home_.setup_ready && home_.last_exists;
-    home_focus_ = continue_ready ? 0 : home_.setup_ready ? 1 : 2;
+    library_.visible = theme::kCardsShown;
+    library_.pitch = theme::kCardPitch;
+    library_.wrap = false;
+    // The carousel, or Settings while the console still needs its keys and firmware.
+    home_focus_ = home_.setup_ready ? 0 : 2;
     home_springs_[static_cast<std::size_t>(home_focus_)].snap(1.0f);
     settings_.visible = 12;
     settings_.pitch = 52.0f;
@@ -83,6 +87,12 @@ void Launcher::open(Screen screen, bool forward)
     transition_.start(theme::kScreenSeconds);
     message_.clear();
     cue(forward ? Cue::open : Cue::back);
+    // Back on the carousel: games copied to the console since the list was read join it.
+    if (screen == Screen::home && games_loaded_)
+    {
+        finish_scan(false);
+        start_scan();
+    }
 }
 
 void Launcher::open_modal(Modal modal)
@@ -224,8 +234,6 @@ void Launcher::press(Key key)
     {
     case Screen::home:
         return press_home(key);
-    case Screen::library:
-        return press_library(key);
     case Screen::settings:
         return press_settings(key);
     case Screen::files:
@@ -283,12 +291,6 @@ void Launcher::update(float dt)
     choice_rows_.update(dt);
     sync_rows_.update(dt);
     sync_setup_rows_.update(dt);
-    mode_.target = selected_docked_ ? 0.0f : 1.0f;
-    mode_.update(dt, 22.0f);
-    const bool mods_on = library_.selected >= 0 && library_.selected < static_cast<int>(games_.size()) &&
-                         games_[static_cast<std::size_t>(library_.selected)].mods_enabled;
-    mods_switch_.target = mods_on ? 1.0f : 0.0f;
-    mods_switch_.update(dt, 22.0f);
     detail_.target = 1.0f;
     detail_.update(dt, 14.0f);
     section_.target = 1.0f;
@@ -382,8 +384,6 @@ void Launcher::draw_screen(Canvas &c, Screen screen)
     {
     case Screen::home:
         return draw_home(c);
-    case Screen::library:
-        return draw_library(c);
     case Screen::settings:
         return draw_settings(c);
     case Screen::files:
@@ -442,25 +442,46 @@ void Launcher::draw_update_notice(Canvas &c)
 
 void Launcher::draw_launch(Canvas &c)
 {
+    gfx::DrawList &list = c.list;
     const float t = launch_.progress();
-    // The menu dims, the game's cover steps forward, then everything goes dark.
-    const float black = tween::cubic_in_out((t - 0.45f) / 0.55f);
-    const float veil = std::max(0.90f * tween::cubic_out(t / 0.22f), black);
-    c.list.rounded_rect(kScreen, 0.0f, Color::rgb(0x020705, veil));
+    // The menu goes behind the game's own picture, blurred and dark; its cover and name come
+    // forward and stay, then everything goes dark for the game's loading screen.
+    const float veil = tween::cubic_out(t / 0.25f);
+    const float black = tween::cubic_in_out((t - 0.80f) / 0.20f);
+    list.rounded_rect(kScreen, 0.0f, Color::rgb(0x020705, veil));
+    // The blur is the cover's smallest copy (64 pixels) stretched over the screen: no shader for
+    // it. Square to 16:9, its middle band. Without a cover, the launcher's own blurred art.
+    const Cover small = c.textures.cover(launch_cover_, 1.0f);
+    if (small.texture != 0)
+        list.image(small.texture, kScreen, {0.0f, 0.21875f, 1.0f, 0.5625f},
+                   Color{1.0f, 1.0f, 1.0f, 0.55f * veil * tween::cubic_out(small.age / 0.3f)});
+    else if (c.textures.backdrop_blur() != 0)
+        list.image(c.textures.backdrop_blur(), kScreen, c.backdrop.uv(kScreen), Color{1.0f, 1.0f, 1.0f, 0.35f * veil});
+    list.gradient_rect(kScreen, 0.0f, Color::rgb(0x020705, 0.35f * veil), Color::rgb(0x020705, 0.80f * veil));
 
-    const float appear = tween::back_out(t / 0.38f);
-    const float leave = 1.0f - tween::cubic_in_out((t - 0.60f) / 0.40f);
-    c.list.push_opacity(tween::clamp01(t / 0.18f) * leave);
-    c.list.push_transform(1.0f - 0.14f * (1.0f - appear) * motion(), 960.0f, 470.0f, 0.0f, 0.0f);
-    const Rect art{810.0f, 300.0f, 300.0f, 300.0f};
-    c.list.shadow({art.x - 10.0f, art.y - 4.0f, art.w + 20.0f, art.h + 20.0f}, 30.0f, 70.0f,
-                  theme::kLime.with_alpha(0.22f));
-    cover(c, launch_cover_, art, 20.0f, 1.0f);
-    text(c, tr("STARTING"), 960.0f, 668.0f, theme::kSmall, theme::kLime, Align::center, 4.0f);
-    text_fit(c, launch_title_, 960.0f, 716.0f, theme::kHeading, theme::kTitle, 1300.0f,
-             Align::center);
-    c.list.pop_transform();
-    c.list.pop_opacity();
+    const float appear = tween::back_out((t - 0.05f) / 0.35f);
+    list.push_opacity(tween::clamp01((t - 0.05f) / 0.15f));
+    list.push_transform(1.0f - 0.14f * (1.0f - appear) * motion(), 960.0f, 480.0f, 0.0f, 0.0f);
+    const Rect art{770.0f, 250.0f, 380.0f, 380.0f};
+    list.shadow({art.x - 10.0f, art.y - 4.0f, art.w + 20.0f, art.h + 24.0f}, 30.0f, 80.0f,
+                Color{0.0f, 0.0f, 0.0f, 0.55f});
+    cover(c, launch_cover_, art, 22.0f, 1.0f);
+    text_fit(c, launch_title_, 960.0f, baseline(668.0f, 56.0f, theme::kDisplay), theme::kDisplay, theme::kTitle,
+             1500.0f, Align::center);
+    list.pop_transform();
+    list.pop_opacity();
+
+    // Bottom right, while it lasts: a turning arc that breathes, so the wait reads as work.
+    const float cx = 1772.0f;
+    const float cy = 972.0f;
+    const float pulse = 0.5f + 0.5f * std::sin(c.time * 5.0f);
+    list.push_opacity(tween::clamp01((t - 0.15f) / 0.15f) * (0.55f + 0.45f * (motion() > 0.0f ? pulse : 1.0f)));
+    list.ring(cx, cy, 20.0f, 4.0f, theme::kText.with_alpha(0.16f));
+    arc(list, cx, cy, 20.0f, 4.0f, c.time * 5.5f * motion(), 1.7f, theme::kLime);
+    list.pop_opacity();
+
+    if (black > 0.0f)
+        list.rounded_rect(kScreen, 0.0f, Color{0.0f, 0.0f, 0.0f, black});
 }
 
 void Launcher::draw(gfx::DrawList &list)

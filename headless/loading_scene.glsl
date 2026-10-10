@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The screen shown while a game loads: a progress bar and the steps of the start, drawn entirely
 // in this shader (no textures). Shared by both graphics backends, which add their own #version
-// line, loading_text.glsl before this file, and a main().
+// line, loading_text.glsl and loading_sprite.glsl before this file, and a main().
 //
-//   vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24])
+//   vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24], vec4 picture)
 //
+// picture is the backdrop picture at this pixel, as the backend read it from its texture
+// (ui/art/loading-backdrop.rgba), with alpha 1; alpha 0 when there is none, and the screen keeps
+// its own dark backdrop.
 // pixel has its origin at the bottom left; seconds counts from the start of loading. With 1000
 // added to it nothing on the screen moves (Settings > Accessibility, reduced motion).
 // state comes from hud.h (Loading::State): the step the start is at (1 to 4, 0 before the first),
@@ -128,7 +131,25 @@ float pill(vec2 pixel, vec2 from, vec2 to, float radius)
     return clamp(radius - length(pixel - vec2(along, a.y)) + 0.5, 0.0, 1.0);
 }
 
-vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24])
+// The sprites (loading_sprite.glsl) are read in one place too: first which frame, if any, this
+// pixel falls in, where in it, and how strongly it is drawn.
+struct SpritePick
+{
+    int frame;      // -1: no sprite here
+    vec2 st;        // texels from the frame's bottom left
+    float strength;
+};
+
+// Takes the pixel for this frame when it lies inside it; at is the frame's bottom left.
+void pick_sprite(inout SpritePick pick, int frame, vec2 pixel, vec2 at, float texel, float strength)
+{
+    vec2 st = (pixel - at) / texel;
+    vec2 frame_size = vec2(kSpriteSize[frame]);
+    if (st.x >= 0.0 && st.y >= 0.0 && st.x < frame_size.x && st.y < frame_size.y)
+        pick = SpritePick(frame, st, strength);
+}
+
+vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24], vec4 picture)
 {
     bool calm = seconds >= 1000.0;
     if (calm)
@@ -143,6 +164,10 @@ vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24])
 
     // ---- the backdrop: near black, a little lighter towards the top, lit faintly from the bar ----
     vec3 color = mix(vec3(0.012, 0.015, 0.020), vec3(0.030, 0.038, 0.050), smoothstep(0.0, 1.0, uv.y));
+    // The picture, when there is one: a little darker everywhere, more so on the left where the
+    // steps are read and along the bottom under the bar.
+    float shade = mix(0.62, 0.86, smoothstep(0.20, 0.60, uv.x)) * mix(0.55, 1.0, smoothstep(0.04, 0.30, uv.y));
+    color = mix(color, picture.rgb * shade, picture.a);
     vec2 glow_from = (pixel - vec2(mix(left, right, progress), 168.0 * unit)) / (size.y * vec2(1.6, 0.9));
     color += kLime * 0.030 * exp(-dot(glow_from, glow_from) * 6.0);
     color *= 1.0 - 0.35 * smoothstep(0.45, 1.05, length((uv - 0.5) * vec2(1.0, 1.15)));
@@ -150,31 +175,16 @@ vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24])
     // ---- the name, top left ----
     pick_line(pick, kLineBrand, kInkBrand, pixel, vec2(left, size.y - 132.0 * unit), 15.0 * unit, 0.34);
 
-    // ---- the steps, one under the other ----
+    // ---- the steps, one under the other, each with its mark (loading_sprite.glsl): faint while it
+    // waits, its two busy frames taking turns while it is under way, its done frame once it is done ----
+    SpritePick sprite = SpritePick(-1, vec2(0.0), 0.0);
     for (int i = 1; i <= 4; ++i)
     {
         float y = (486.0 - float(i - 1) * 58.0) * unit;
-        vec2 centre = vec2(left + 9.0 * unit, y + 9.0 * unit);
-        float away = length(pixel - centre);
-        float ring = clamp(1.6 * unit - abs(away - 8.0 * unit) + 0.5, 0.0, 1.0);
-        float dot_cover = clamp(4.2 * unit - away + 0.5, 0.0, 1.0);
         pick_line(pick, i, i < step ? kInkDone : i == step ? kInkNow : kInkLater, pixel,
-                  vec2(left + 44.0 * unit, y), 18.0 * unit, 0.16);
-        if (i < step)
-        {
-            // Done: a filled mark.
-            color = mix(color, kGreen, 0.85 * clamp(8.8 * unit - away + 0.5, 0.0, 1.0));
-        }
-        else if (i == step)
-        {
-            float breath = calm ? 1.0 : 0.82 + 0.18 * sin(seconds * 3.2);
-            color = mix(color, kLime, ring);
-            color = mix(color, kLime, dot_cover * breath);
-        }
-        else
-        {
-            color = mix(color, vec3(1.0), 0.16 * ring);
-        }
+                  vec2(left + 62.0 * unit, y), 18.0 * unit, 0.16);
+        int frame = i < step ? kMark + 2 : i == step && !calm ? kMark + (int(seconds / 0.10) & 1) : kMark;
+        pick_sprite(sprite, frame, pixel, vec2(left, y - 16.0 * unit), 1.8 * unit, i > step ? 0.22 : 1.0);
     }
 
     // ---- above the bar: the word on the left, the figure on the right ----
@@ -241,6 +251,22 @@ vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24])
                          pick.ink == kInkLater ? 0.20 : pick.ink == kInkWord ? 0.52 : pick.ink == kInkFigure ? 0.96 :
                          pick.ink == kInkLime ? 0.90 : 0.54;
         color = mix(color, ink, strength * cover);
+    }
+
+    // ---- the walker: its two frames take turns while it stands on the end of the filled part ----
+    float walker_texel = 1.5 * unit;
+    pick_sprite(sprite, calm ? kWalker : kWalker + (int(seconds / 0.18) & 1), pixel,
+                vec2(filled_to - 0.5 * float(kSpriteSize[kWalker].x) * walker_texel, bar_to.y), walker_texel, 1.0);
+
+    // ---- the sprites: the one place their frames are read, as the glyph table is ----
+    if (sprite.frame >= 0)
+    {
+        ivec2 frame_size = kSpriteSize[sprite.frame];
+        ivec2 t = ivec2(sprite.st);
+        int at = (frame_size.y - 1 - t.y) * frame_size.x + t.x; // the frames are stored top row first
+        int code = int((sprite_word(sprite.frame, at >> 3) >> uint((at & 7) * 4)) & 0xfu);
+        if (code != 0)
+            color = mix(color, kSpriteColour[kSpritePalette[sprite.frame] + code - 1], sprite.strength);
     }
 
     // Arrive out of the dark; a little noise keeps the gradients from banding.

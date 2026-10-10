@@ -699,6 +699,9 @@ inline bool SaveLastGame(std::string_view name, const std::string& file = Settin
     return Settings::Write(document, file);
 }
 
+// The games played most recently, the latest first: the launcher's carousel starts with them.
+inline constexpr std::size_t kRecentGames = 50;
+
 inline std::vector<std::string> LoadRecentGames(const std::string& file = SettingsFile()) {
     using Settings::Json;
     const Json document = Settings::Load(file);
@@ -708,7 +711,7 @@ inline std::vector<std::string> LoadRecentGames(const std::string& file = Settin
     for (const auto& entry : document.at(at)) {
         if (!entry.is_string()) continue;
         const std::string name = entry.get<std::string>();
-        if (recent.size() < 4 && ValidRomFilename(name) && std::find(recent.begin(), recent.end(), name) == recent.end())
+        if (recent.size() < kRecentGames && ValidRomFilename(name) && std::find(recent.begin(), recent.end(), name) == recent.end())
             recent.push_back(name);
     }
     return recent;
@@ -719,7 +722,7 @@ inline bool SaveRecentGame(std::string_view name, const std::string& file = Sett
     auto recent = LoadRecentGames(file);
     recent.erase(std::remove(recent.begin(), recent.end(), name), recent.end());
     recent.insert(recent.begin(), std::string(name));
-    if (recent.size() > 4) recent.resize(4);
+    if (recent.size() > kRecentGames) recent.resize(kRecentGames);
     Settings::Json document = Settings::Load(file);
     document["version"] = 1;
     document["library"]["recent"] = recent;

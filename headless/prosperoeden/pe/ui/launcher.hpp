@@ -1,4 +1,4 @@
-// ProsperoEden - The launcher: home, library, settings and their dialogs.
+// ProsperoEden - The launcher: the home carousel, settings and their dialogs.
 // Copyright (C) 2026 BlackBearReloaded
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -15,6 +15,10 @@
 
 namespace pe::ui
 {
+
+// The order of the home carousel: the recently played games first, the most recent first, then
+// the others in the order given.
+void order_by_recent(std::vector<Game> &games, const std::vector<Recent> &recents);
 
 // Every screen of the launcher as one state machine. The frontend feeds it
 // pressed buttons and frame time, draws its list and plays its cues; it ends
@@ -62,8 +66,7 @@ class Launcher
   private:
     enum class Screen : std::uint8_t
     {
-        home,
-        library,
+        home, // the carousel of every game, and the system buttons under it
         settings,
         files,
         language,
@@ -131,12 +134,14 @@ class Launcher
     // Shows the launcher as the preferences' accessibility switches say.
     void apply_look();
 
-    // ---- home (home.cpp) ----
+    // ---- home: the carousel and the system buttons (home.cpp) ----
     void press_home(Key key);
+    void press_carousel(Key key);
     void update_controllers(float dt);
     void draw_home(Canvas &c);
+    void draw_carousel(Canvas &c);
+    void draw_system_buttons(Canvas &c);
     void draw_controllers(Canvas &c);
-    void open_library_at_last();
 
     // ---- library and game settings (library.cpp) ----
     // The game list is read beside the menu: reading every game takes a moment.
@@ -159,10 +164,10 @@ class Launcher
                                    bool brief = false);
     // A refresh rate setting as the player reads it: 0 is "60 Hz", 1 is "120 Hz".
     static std::string hertz(int refresh);
-    void enter_library();
-    void press_library(Key key);
-    void draw_library(Canvas &c);
+    // The carousel's selection is games_[library_.selected].
     void refresh_selected_game();
+    // Triangle on a game: its settings dialog.
+    void open_game_settings();
     void press_game(Key key);
     void draw_game(Canvas &c, float open);
     // What a row of the game settings dialog is (GameRow in library.cpp): Save data is there in
@@ -364,7 +369,8 @@ class Launcher
     tween::Timer launch_;
     bool done_ = false;
 
-    // home: 0 continue, 1-3 header, 4 game details, 5-8 recent, 9 view all
+    // home: 0 the carousel, 1 to kSystemButtons the system buttons under it
+    static constexpr int kSystemButtons = 3; // Profiles, Settings, About
     Home home_;
     // The controllers connected now (bit 0 is player 1), and how lit each one's icon is.
     unsigned controllers_ = 0;
@@ -372,7 +378,7 @@ class Launcher
     std::array<tween::Spring, 4> controller_lit_{};
     std::array<float, 4> controller_pop_{}; // 1 when a controller appears, then decays
     int home_focus_ = 0;
-    std::array<tween::Spring, 10> home_springs_{};
+    std::array<tween::Spring, 1 + kSystemButtons> home_springs_{};
     float intro_ = 0.0f;
     bool first_start_ = true;
 
@@ -380,11 +386,9 @@ class Launcher
     std::vector<Game> games_;
     std::future<std::vector<Game>> scan_; // the list being read
     bool games_loaded_ = false;
-    ListView library_;
+    ListView library_;     // the carousel: a card per game, left to right
     bool selected_docked_ = true;
-    tween::Spring mode_;   // 0 docked .. 1 handheld
-    tween::Spring mods_switch_; // the selected game's Mods switch: 0 off .. 1 on
-    tween::Spring detail_; // the details fade in after the selection moves
+    tween::Spring detail_; // the selected game's name and details fade in after the selection moves
 
     // settings and dialogs
     Preferences prefs_;

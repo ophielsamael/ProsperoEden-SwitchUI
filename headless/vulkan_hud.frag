@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// The overlay and the loading screen. Built twice (tools/prepare-vulkan-port.py): as it is, for
+// the HUD pipeline, which has no descriptors; and with EDEN_LOADING_PICTURE for the loading
+// pipeline, whose set 0 holds the picture behind the loading screen (vulkan_loading.inc).
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 layout(push_constant) uniform Text { uint glyphs[28]; uint width; uint x; uint y; uint loading; } text;
 layout(location = 0) out vec4 color;
+#ifdef EDEN_LOADING_PICTURE
+layout(set = 0, binding = 0) uniform sampler2D picture;
+#endif
 #include "loading_text.glsl"
+#include "loading_sprite.glsl"
 #include "loading_scene.glsl"
 void main() {
     // Vulkan push-constant arrays require dynamically uniform indices. Load
@@ -21,10 +28,16 @@ void main() {
         // it began (plus one), the glyphs' words what the start is doing (hud.h). Vulkan counts
         // rows from the top.
         vec2 size = vec2(float(text.x), float(text.y));
+        // The loading state is the first 24 words (the others are the overlay's text).
         uint state[24];
         for (int i = 0; i < 24; ++i) state[i] = glyphs[i];
+#ifdef EDEN_LOADING_PICTURE
+        vec4 backdrop = vec4(texture(picture, gl_FragCoord.xy / size).rgb, 1.0);
+#else
+        vec4 backdrop = vec4(0.0);
+#endif
         color = vec4(loading_scene(vec2(gl_FragCoord.x, size.y - gl_FragCoord.y), size,
-                                   float(text.loading - 1u) * 0.001, state), 1.0);
+                                   float(text.loading - 1u) * 0.001, state, backdrop), 1.0);
         return;
     }
     // The overlay: x and y are where its text starts, width the picture's height. The text is

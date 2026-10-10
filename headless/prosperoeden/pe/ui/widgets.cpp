@@ -293,27 +293,6 @@ const Plate kListPlate{13.0f,
                        theme::kLime.with_alpha(0.44f),
                        theme::kLimeDeep.with_alpha(0.50f),
                        theme::kLime.with_alpha(0.63f)};
-const Plate kButtonPlate{12.0f,
-                         Color::rgb(0xe6ede4, 0.10f),
-                         kWhite.with_alpha(0.19f),
-                         Color::rgb(0x1c2c24, 0.55f),
-                         theme::kLime.with_alpha(0.50f),
-                         theme::kLimeDeep.with_alpha(0.44f),
-                         theme::kLime.with_alpha(0.63f)};
-const Plate kTilePlate{12.0f,
-                       Color::rgb(0xeef7ed, 0.06f),
-                       kWhite.with_alpha(0.125f),
-                       Color::rgb(0x1c2c24, 0.45f),
-                       theme::kLime.with_alpha(0.345f),
-                       theme::kLimeDeep.with_alpha(0.376f),
-                       theme::kLime.with_alpha(0.63f)};
-const Plate kNavPlate{12.0f,
-                      kWhite.with_alpha(0.0f),
-                      kWhite.with_alpha(0.0f),
-                      Color::rgb(0x1c2c24, 0.0f),
-                      theme::kLime.with_alpha(0.31f),
-                      theme::kLimeDeep.with_alpha(0.31f),
-                      theme::kLime.with_alpha(0.50f)};
 
 void plate_rest(Canvas &c, const Plate &style, const Rect &r)
 {
@@ -542,7 +521,7 @@ void draw_pad(Canvas &c, Pad button, float x, float cy, float size, float alpha)
 }
 
 float draw_hints(Canvas &c, const Hint *hints, int count, float x, float cy, Color color,
-                 float max_width)
+                 float max_width, Align align)
 {
     constexpr float kSize = 28.0f;
     constexpr float kIconGap = 10.0f;
@@ -575,6 +554,9 @@ float draw_hints(Canvas &c, const Hint *hints, int count, float x, float cy, Col
         return cursor - x;
     };
     const float width = run(false);
+    // Right-aligned: x is where the last hint ends.
+    if (align == Align::right)
+        x -= max_width > 0.0f ? std::min(width, max_width) : width;
     if (max_width <= 0.0f || width <= max_width)
         return run(true);
     const float scale = max_width / width;

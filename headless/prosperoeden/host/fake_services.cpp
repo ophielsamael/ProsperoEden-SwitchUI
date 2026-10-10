@@ -256,7 +256,7 @@ ui::Home FakeServices::home()
         {
             const ui::Game &game = find(name);
             if (game_exists(game.file))
-                home.recents.push_back({game.file, game.name, game.cover});
+                home.recents.push_back({game.file, game.name});
         }
     }
     home.system_status = fill(tr("{0} games installed"), {std::to_string(games_.size())}) + "  /  " +

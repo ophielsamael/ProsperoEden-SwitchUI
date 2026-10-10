@@ -33,6 +33,8 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+#include <chrono>
+#include <thread>
 
 namespace
 {
@@ -79,6 +81,9 @@ struct Stage
     void restart(bool first_start = false)
     {
         launcher = std::make_unique<pe::ui::Launcher>(services, textures, fonts, first_start);
+        // The game list is read beside the menu, in real time; the preview's frames take none. Its
+        // pictures wait for the list, as a player would.
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
     }
     void frame()
     {
@@ -102,6 +107,26 @@ struct Stage
             if (pause > 0.0f)
                 wait(pause);
         }
+    }
+    // The name of the game at index when the games are in alphabetical order.
+    std::string by_name(int index)
+    {
+        return services.games()[static_cast<std::size_t>(index)].name;
+    }
+    // Selects a game on the carousel: back to its first card, then right as far as the
+    // carousel's order puts the game.
+    void pick(const std::string &name)
+    {
+        std::vector<pe::ui::Game> games = services.games();
+        pe::ui::order_by_recent(games, services.home().recents);
+        int index = 0;
+        for (int i = 0; i < static_cast<int>(games.size()); ++i)
+            if (games[static_cast<std::size_t>(i)].name == name)
+                index = i;
+        for (std::size_t i = 0; i < games.size(); i += pe::ui::theme::kCardsShown)
+            press({Key::l1});
+        for (int i = 0; i < index; ++i)
+            press({Key::right});
     }
     void render()
     {
@@ -144,41 +169,46 @@ void pictures(Stage &s)
     s.shoot("00-arriving");
     s.wait(3.0f);
     s.shoot("01-home");
+    // The carousel: a card to the right, while the highlight glides; then a page.
     s.press({Key::right});
+    s.wait(0.08f);
+    s.shoot("02-home-carousel-moving");
     s.wait(0.6f);
-    s.shoot("02-home-details-focus");
-    s.press({Key::down, Key::right});
-    s.wait(0.6f);
-    s.shoot("03-home-recent-focus");
-    s.press({Key::up, Key::up, Key::right});
+    s.shoot("03-home-carousel-moved");
+    s.press({Key::r1});
+    s.wait(0.8f);
+    s.shoot("05-home-carousel-page");
+    // The system buttons under it, and back up with Circle.
+    s.press({Key::down});
     s.wait(0.6f);
     s.shoot("04-home-settings-focus");
-
-    // Library.
-    s.restart();
-    s.wait(1.0f);
-    s.press({Key::up, Key::cross});
-    s.wait(0.14f);
-    s.shoot("05-opening-library");
-    s.wait(1.2f);
-    s.shoot("06-library");
-    s.press({Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down,
-             Key::down, Key::down});
-    s.wait(0.8f);
-    s.shoot("07-library-scrolled");
     s.press({Key::right});
     s.wait(0.6f);
-    s.shoot("08-library-handheld");
-    // The Library's Mods switch: all of this game's mods off, and on again.
+    s.shoot("06-home-about-focus");
+    s.press({Key::circle});
+    s.wait(0.6f);
+    s.shoot("06b-home-back-on-carousel");
+
+    // A game further along the carousel, and its own settings.
+    s.restart();
+    s.wait(1.0f);
+    s.pick(s.by_name(9));
+    s.wait(0.8f);
+    s.shoot("07-carousel-scrolled");
+    // The game's Mods switch: all of its mods off, and on again.
     s.press({Key::square});
     s.wait(0.6f);
-    s.shoot("44-library-mods-off");
+    s.shoot("44-carousel-mods-off");
     s.press({Key::square});
     s.wait(0.6f);
-    s.shoot("45-library-mods-on");
+    s.shoot("45-carousel-mods-on");
     s.press({Key::triangle});
     s.wait(0.8f);
     s.shoot("09-game-settings");
+    // Its console mode, the first row: left and right change it.
+    s.press({Key::right});
+    s.wait(0.6f);
+    s.shoot("08-game-settings-handheld");
     // The game's own Video: a renderer of its own, then the output's refresh rate.
     s.press({Key::down, Key::cross});
     s.wait(0.6f);
@@ -250,8 +280,20 @@ void pictures(Stage &s)
     s.press({Key::cross});
     s.wait(0.30f);
     s.shoot("11-launching");
-    s.wait(0.32f);
-    s.shoot("12-launching-late");
+    s.wait(0.62f);
+    s.shoot("12-launching-held");
+    s.wait(0.50f);
+    s.shoot("12b-launching-dark");
+    {
+        // The start screen sounds once, and the launcher is done when it has run.
+        const bool snapped = std::count(s.heard.begin(), s.heard.end(), pe::audio::Cue::launch) == 1;
+        s.wait(0.3f);
+        if (!snapped || !s.launcher->done())
+        {
+            std::fprintf(stderr, "error: the start screen did not sound once or did not end\n");
+            s.ok = false;
+        }
+    }
 
     // A newer release the app cannot install itself: the notification at the top right, for ten
     // seconds.
@@ -356,8 +398,8 @@ void pictures(Stage &s)
     s.shoot("89-update-notes-truncated-end");
     s.services.update_notes_truncated = false;
 
-    // A game's file taken away while the menu shows it: within a moment it leaves the home screen
-    // (another recent game takes its place) and the Library.
+    // A game's file taken away while the menu shows it: within a moment it leaves the carousel
+    // (the next recent game takes its card).
     s.restart();
     s.wait(1.0f);
     for (const pe::ui::Game &game : s.services.games())
@@ -365,15 +407,12 @@ void pictures(Stage &s)
             s.services.removed.push_back(game.file);
     s.wait(2.5f);
     s.shoot("56-home-game-removed");
-    s.press({Key::up, Key::cross});
-    s.wait(1.2f);
-    s.shoot("57-library-game-removed");
     s.services.removed.clear();
 
     // Settings and its dialogs.
     s.restart();
     s.wait(1.0f);
-    s.press({Key::up, Key::right, Key::cross});
+    s.press({Key::down, Key::cross});
     s.wait(1.0f);
     s.shoot("13-settings");
     // Profiles, the first category: a new one, playing as it, and taking it off the list again.
@@ -597,7 +636,7 @@ void pictures(Stage &s)
     // About.
     s.restart();
     s.wait(1.0f);
-    s.press({Key::up, Key::right, Key::right, Key::cross});
+    s.press({Key::down, Key::right, Key::cross});
     s.wait(1.0f);
     s.shoot("23-about");
 
@@ -640,9 +679,8 @@ void pictures(Stage &s)
     s.services.has_server = true;
     s.restart();
     s.wait(1.0f);
-    s.press({Key::up, Key::cross});
     s.wait(1.2f);
-    s.press({Key::down, Key::down, Key::down, Key::down, Key::down}); // Lighthouse Keeper
+    s.pick("Lighthouse Keeper");
     s.wait(0.6f);
     s.shoot("80-library-server-game");
     // Square: into the download queue; it starts at once.
@@ -652,7 +690,7 @@ void pictures(Stage &s)
     s.wait(2.0f);
     s.shoot("82-library-downloading");
     // Cross on another: played once it is downloaded, after the one downloading.
-    s.press({Key::down, Key::down, Key::down}); // Orbit Postman
+    s.pick("Orbit Postman");
     s.wait(0.4f);
     s.press({Key::cross});
     s.wait(0.6f);
@@ -689,9 +727,8 @@ void pictures(Stage &s)
     // A downloaded game from the server is deleted from the console in its settings, asked first.
     s.restart();
     s.wait(1.0f);
-    s.press({Key::up, Key::cross});
     s.wait(1.2f);
-    s.press({Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down}); // Orbit Postman
+    s.pick("Orbit Postman");
     s.wait(0.6f);
     s.shoot("94-library-downloaded");
     s.press({Key::triangle});
@@ -719,10 +756,8 @@ void pictures(Stage &s)
     s.services.download_fails = true;
     s.restart();
     s.wait(1.0f);
-    s.press({Key::up, Key::cross});
     s.wait(1.2f);
-    s.press({Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down,
-             Key::down, Key::down, Key::down}); // Rune Gardens
+    s.pick("Rune Gardens");
     s.wait(0.4f);
     // Two sources have it: which one, first.
     s.press({Key::cross});
@@ -735,9 +770,7 @@ void pictures(Stage &s)
     s.wait(0.6f);
     s.shoot("87-library-download-failed");
     // Settings > Downloads: the sources and the queue.
-    s.press({Key::circle});
-    s.wait(0.8f);
-    s.press({Key::up, Key::right, Key::cross});
+    s.press({Key::down, Key::cross});
     s.wait(1.0f);
     s.press({Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down});
     s.wait(0.6f);
@@ -763,7 +796,7 @@ void pictures(Stage &s)
     s.services.has_server = false;
     s.restart();
     s.wait(1.0f);
-    s.press({Key::up, Key::right, Key::cross});
+    s.press({Key::down, Key::cross});
     s.wait(1.0f);
     s.press({Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down,
              Key::cross});
@@ -774,7 +807,6 @@ void pictures(Stage &s)
     s.services.save_sync_on = true;
     s.restart();
     s.wait(1.0f);
-    s.press({Key::up, Key::cross});
     s.wait(1.2f);
     s.press({Key::cross});
     s.wait(0.6f);
@@ -798,7 +830,6 @@ void pictures(Stage &s)
     s.services.save_sync_fails = true;
     s.restart();
     s.wait(1.0f);
-    s.press({Key::up, Key::cross});
     s.wait(1.2f);
     s.press({Key::cross});
     s.wait(3.0f);
@@ -815,7 +846,6 @@ void pictures(Stage &s)
     s.services.save_sync_too_old = true;
     s.restart();
     s.wait(1.0f);
-    s.press({Key::up, Key::cross});
     s.wait(1.2f);
     s.press({Key::cross});
     s.wait(3.0f);
@@ -835,7 +865,7 @@ void pictures(Stage &s)
     // Settings > Save sync: the profiles and their servers; pairing one by a QR code.
     s.restart();
     s.wait(1.0f);
-    s.press({Key::up, Key::right, Key::cross});
+    s.press({Key::down, Key::cross});
     s.wait(1.0f);
     s.press({Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down});
     s.wait(0.6f);
@@ -870,20 +900,18 @@ void tour(Stage &s)
     s.wait(1.2f);
     s.services.connected_controllers = 0b0111;
     s.wait(1.4f);
-    s.press({Key::right, Key::left, Key::down, Key::right, Key::right, Key::left, Key::up}, 0.32f);
-    s.wait(0.5f);
-    s.press({Key::up}, 0.4f);
-    s.press({Key::cross});
-    s.wait(1.0f);
-    s.press({Key::down, Key::down, Key::down, Key::down, Key::down, Key::down, Key::down,
-             Key::down, Key::up, Key::up},
-            0.22f);
+    // Along the carousel, a page and back, then the system buttons under it.
+    s.press({Key::right, Key::right, Key::right, Key::right, Key::left}, 0.32f);
+    s.press({Key::r1}, 0.7f);
+    s.press({Key::l1}, 0.7f);
+    s.press({Key::down, Key::left, Key::right, Key::right, Key::up}, 0.4f);
+    // A game's own settings.
     s.press({Key::right}, 0.6f);
     s.press({Key::triangle}, 0.8f);
-    s.press({Key::down, Key::right, Key::down, Key::right}, 0.4f);
-    s.press({Key::circle}, 0.6f);
+    s.press({Key::right, Key::down, Key::down}, 0.4f);
     s.press({Key::circle}, 0.8f);
-    s.press({Key::right}, 0.3f);
+    // Settings and one of its dialogs.
+    s.press({Key::down}, 0.4f);
     s.press({Key::cross});
     s.wait(0.9f);
     s.press({Key::down, Key::down, Key::up}, 0.3f);
@@ -891,9 +919,10 @@ void tour(Stage &s)
     s.press({Key::right, Key::down, Key::left}, 0.4f);
     s.press({Key::circle}, 0.6f);
     s.press({Key::circle}, 0.9f);
-    s.press({Key::down}, 0.5f);
+    // Back on the carousel, and a game starts.
+    s.press({Key::up}, 0.5f);
     s.press({Key::cross});
-    s.wait(1.2f);
+    s.wait(1.9f);
 }
 
 // PE_TOUR=update: the app opens with a newer release listed; the offer, Update now, the download

@@ -1,13 +1,14 @@
-// ProsperoEden - Launcher home: continue playing, recent games, navigation.
+// ProsperoEden - Launcher home: every game on one carousel, and the system buttons under it.
 // Copyright (C) 2026 BlackBearReloaded
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "pe/ui/launcher.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <iterator>
 #include <string>
-#include <string_view>
 
 namespace pe::ui
 {
@@ -17,143 +18,190 @@ using audio::Cue;
 namespace
 {
 
+constexpr float kPi = 3.14159265f;
 const Color kWhite{1.0f, 1.0f, 1.0f, 1.0f};
 
-constexpr Rect kHero{120.0f, 200.0f, 1680.0f, 480.0f};
-// Header tabs, hero buttons and "view all" are as wide as their words need in the language shown;
-// these are their sizes in English and the edges they keep.
-constexpr float kNavRight = 1480.0f;
-constexpr float kNavWidth = 136.0f;
-constexpr float kButtonWidth = 272.0f;
-constexpr float kButtonWidest = 390.0f;
-constexpr float kViewAllWidth = 304.0f;
+// The top bar: who is playing at the left, the controllers and the clock at the right.
+constexpr float kBarY = 96.0f; // its centre line
+constexpr float kRight = 1800.0f;
+// The carousel: the selected game's name over its card, its details under it.
+constexpr float kCardsLeft = 120.0f;
+constexpr float kCardTop = 292.0f;
+// The system buttons, round, centred under the carousel.
+constexpr float kButtonY = 846.0f;
+constexpr float kButtonRadius = 46.0f;
+constexpr float kButtonPitch = 150.0f;
 
-Rect tile_rect(int index)
+float button_x(int index)
 {
-    return {120.0f + 424.0f * static_cast<float>(index), 760.0f, 400.0f, 144.0f};
+    return 960.0f + kButtonPitch * (static_cast<float>(index) - 1.0f);
 }
 
-// The four controllers, at the right of the hero beside its buttons.
-constexpr float kPadsRight = 1752.0f;
-Rect pad_rect(int player)
+// The first letter of a name, as the avatar shows it.
+std::string initial(const std::string &name)
 {
-    return {kPadsRight - 354.0f + 94.0f * static_cast<float>(player), 506.0f, 72.0f, 50.0f};
+    if (name.empty())
+        return "P";
+    std::size_t length = 1;
+    while (length < name.size() && (static_cast<unsigned char>(name[length]) & 0xc0u) == 0x80u)
+        ++length;
+    std::string letter = name.substr(0, length);
+    if (length == 1)
+        letter[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(letter[0])));
+    return letter;
+}
+
+// The system buttons' marks, drawn from lines: a person, a gear, an "i".
+void draw_mark(gfx::DrawList &list, int index, float cx, float cy, Color ink)
+{
+    if (index == 0)
+    {
+        list.circle(cx, cy - 9.0f, 9.0f, ink);
+        arc(list, cx, cy + 19.0f, 17.0f, 4.5f, kPi, kPi, ink);
+    }
+    else if (index == 1)
+    {
+        list.ring(cx, cy, 11.0f, 5.0f, ink);
+        for (int tooth = 0; tooth < 8; ++tooth)
+        {
+            const float a = kPi * 0.25f * static_cast<float>(tooth);
+            list.line(cx + 13.0f * std::cos(a), cy + 13.0f * std::sin(a), cx + 19.0f * std::cos(a),
+                      cy + 19.0f * std::sin(a), 5.5f, ink);
+        }
+    }
+    else
+    {
+        list.ring(cx, cy, 19.0f, 2.5f, ink);
+        list.circle(cx, cy - 9.0f, 3.2f, ink);
+        list.line(cx, cy - 2.0f, cx, cy + 11.0f, 4.5f, ink);
+    }
 }
 
 } // namespace
 
-void Launcher::open_library_at_last()
-{
-    open(Screen::library, true);
-    enter_library();
-    for (int i = 0; i < static_cast<int>(games_.size()); ++i)
-    {
-        if (games_[static_cast<std::size_t>(i)].file == home_.last_file)
-        {
-            library_.reset(library_.count, i);
-            refresh_selected_game();
-            break;
-        }
-    }
-}
-
 void Launcher::press_home(Key key)
 {
-    const bool ready = home_.setup_ready;
-    const bool continue_ready = ready && home_.last_exists;
-    // The status panel takes the place of the recent games.
-    const bool recents_shown = home_.status.empty();
-    const int recent_count = recents_shown ? static_cast<int>(home_.recents.size()) : 0;
+    if (home_focus_ == 0)
+        return press_carousel(key);
     const int before = home_focus_;
-    int &focus = home_focus_;
-
     switch (key)
     {
-    case Key::up:
-        if (focus == 0 || focus == 4)
-            focus = ready ? 1 : 2;
-        else if (focus >= 5)
-            focus = 0;
-        break;
-    case Key::down:
-        if (focus >= 1 && focus <= 3)
-        {
-            if (ready)
-                focus = 0;
-        }
-        else if ((focus == 0 || focus == 4) && recents_shown)
-        {
-            focus = recent_count > 0 ? 5 : 9;
-        }
-        break;
     case Key::left:
-    case Key::right:
-    {
-        const int delta = key == Key::right ? 1 : -1;
-        if (focus >= 1 && focus <= 3)
-        {
-            focus = 1 + (focus - 1 + delta + 3) % 3;
-            if (focus == 1 && !ready)
-                focus = delta > 0 ? 2 : 3;
-        }
-        else if (focus == 0 || focus == 4)
-        {
-            if (continue_ready)
-                focus = focus == 0 ? 4 : 0;
-        }
-        else
-        {
-            const int length = recent_count + 1;
-            int position = focus == 9 ? recent_count : focus - 5;
-            position = (position + delta + length) % length;
-            focus = position == recent_count ? 9 : position + 5;
-        }
+        home_focus_ = std::max(1, home_focus_ - 1);
         break;
-    }
-    case Key::triangle:
-        if ((focus == 0 || focus == 4) && continue_ready)
-            open_library_at_last();
+    case Key::right:
+        home_focus_ = std::min(kSystemButtons, home_focus_ + 1);
+        break;
+    case Key::up:
+        if (home_.setup_ready)
+            home_focus_ = 0;
+        break;
+    case Key::circle:
+        if (home_.setup_ready)
+        {
+            home_focus_ = 0;
+            cue(Cue::back);
+        }
         return;
     case Key::cross:
         press_ = 1.0f;
-        if (focus == 0 && continue_ready)
+        if (home_focus_ == 1)
         {
-            launch(home_.last_file, home_.last_title, home_.last_cover);
+            open_profiles();
         }
-        else if ((focus == 0 || focus == 1 || focus == 9) && ready)
-        {
-            open(Screen::library, true);
-            enter_library();
-        }
-        else if (focus == 2)
+        else if (home_focus_ == 2)
         {
             open(Screen::settings, true);
             prefs_ = services_.preferences();
             section_.snap(1.0f);
         }
-        else if (focus == 3)
+        else
         {
             open(Screen::about, true);
         }
-        else if (focus == 4 && continue_ready)
-        {
-            open_library_at_last();
-        }
-        else if (focus >= 5 && focus < 5 + recent_count && ready)
-        {
-            const Recent &recent = home_.recents[static_cast<std::size_t>(focus - 5)];
-            launch(recent.file, recent.title, recent.cover);
-        }
-        else
-        {
-            cue(Cue::error);
-        }
+        // A confirm on the home screen sounds the same whatever it opens.
+        cues_.back() = Cue::select;
         return;
     default:
         return;
     }
-    if (focus != before)
+    if (home_focus_ != before)
         cue(Cue::focus);
+}
+
+void Launcher::press_carousel(Key key)
+{
+    const int count = static_cast<int>(games_.size());
+    Game *game = count > 0 ? &games_[static_cast<std::size_t>(library_.selected)] : nullptr;
+    switch (key)
+    {
+    case Key::left:
+    case Key::right:
+        if (library_.move(key == Key::right ? 1 : -1))
+        {
+            message_.clear();
+            refresh_selected_game();
+            cue(Cue::focus);
+        }
+        return;
+    case Key::l1:
+    case Key::r1:
+        if (library_.page(key == Key::r1 ? 1 : -1))
+        {
+            message_.clear();
+            refresh_selected_game();
+            cue(Cue::page);
+        }
+        return;
+    case Key::down:
+        home_focus_ = 2; // Settings, the middle one
+        cue(Cue::focus);
+        return;
+    case Key::triangle:
+        if (game != nullptr)
+            open_game_settings();
+        return;
+    case Key::square:
+    {
+        // A game on download sources: into the download queue, or out of it.
+        if (game != nullptr && game->remote)
+        {
+            queue_remote(*game);
+            return;
+        }
+        // The Mods switch: all of the game's mods on or off at once. Their own switches (Game
+        // settings > Mods) keep their state behind it.
+        if (game == nullptr || game->title_id == 0 || game->mods == 0)
+        {
+            if (game != nullptr)
+                cue(Cue::error);
+            return;
+        }
+        const bool saved = services_.set_mods_enabled(game->title_id, !game->mods_enabled);
+        if (saved)
+            count_mods(*game, services_.mods(game->title_id));
+        say(saved ? tr("Saved for this game. Applies on next launch.") :
+                    tr("Could not save. Please try again."),
+            !saved);
+        cue(saved ? Cue::toggle : Cue::error);
+        return;
+    }
+    case Key::cross:
+        if (game == nullptr || !home_.setup_ready)
+        {
+            cue(Cue::error);
+            return;
+        }
+        if (game->remote)
+        {
+            play_remote(*game);
+            return;
+        }
+        launch(game->file, game->name, game->cover);
+        return;
+    default:
+        return;
+    }
 }
 
 void Launcher::update_controllers(float dt)
@@ -190,40 +238,161 @@ void Launcher::draw_controllers(Canvas &c)
 {
     if (textures_.controller() == 0)
         return;
-    text(c, tr("CONTROLLERS"), kPadsRight, baseline(462.0f, 30.0f, theme::kSmall), theme::kSmall,
-         Color::rgb(0xc6d2c7), Align::right, 3.0f);
+    // The four controllers, player 1 at the left, ending before the clock.
+    constexpr float kWidth = 54.0f;
+    constexpr float kGap = 10.0f;
+    const float right = kRight - text_width(c, clock_, theme::kClock) - 36.0f;
     for (int player = 0; player < 4; ++player)
     {
         const std::size_t index = static_cast<std::size_t>(player);
-        const Rect r = pad_rect(player);
+        const Rect r{right - (4.0f - static_cast<float>(player)) * (kWidth + kGap) + kGap,
+                     kBarY - kWidth * 25.0f / 72.0f, kWidth, kWidth * 50.0f / 72.0f};
         const float lit = tween::clamp01(controller_lit_[index].value);
         // A controller that joins lands with a small bounce.
         const float pop = controller_pop_[index];
-        const float bounce = std::sin(3.14159265f * (1.0f - pop)) * pop * motion();
+        const float bounce = std::sin(kPi * (1.0f - pop)) * pop * motion();
         c.list.push_transform(1.0f + 0.34f * bounce, r.x + r.w * 0.5f, r.y + r.h * 0.5f, 0.0f,
                               -5.0f * bounce);
         controller_icon(c, r, lit);
         c.list.pop_transform();
-        const char number[] = {static_cast<char>('1' + player), 0};
-        text(c, number, r.x + r.w * 0.5f, baseline(564.0f, 26.0f, theme::kSmall), theme::kSmall,
-             gfx::mix(theme::kFaint.with_alpha(0.6f), theme::kLime, lit), Align::center);
+    }
+}
+
+void Launcher::draw_carousel(Canvas &c)
+{
+    gfx::DrawList &list = c.list;
+    const int count = static_cast<int>(games_.size());
+    if (count == 0)
+    {
+        // Nothing to show yet: why, where the cards would be.
+        const Rect panel{kCardsLeft, kCardTop, 1680.0f, theme::kCardSize};
+        glass(c, panel, 22.0f, theme::kGlass.with_alpha(0.60f), kWhite.with_alpha(0.10f));
+        const char *title = !home_.setup_ready ? tr("Setup required") :
+                            !games_loaded_     ? tr("Reading...") :
+                                                 tr("No ROM files found.");
+        text_shrink(c, title, 960.0f, baseline(kCardTop + 120.0f, 56.0f, theme::kDisplay), theme::kDisplay,
+                    theme::kTitle, 1560.0f, Align::center);
+        if (!home_.status.empty())
+            notice_block(c, home_.status, 200.0f, baseline(kCardTop + 200.0f, 36.0f, theme::kText24),
+                         theme::kText24, 36.0f, theme::kCopy, 1520.0f, 3, home_.launch_failed);
+        return;
+    }
+
+    const float focus = tween::clamp01(home_springs_[0].value);
+    const float pitch = library_.pitch;
+    const float size = theme::kCardSize;
+    const auto card_x = [&](float at) { return kCardsLeft + at - library_.scroll(); };
+    // The card under the highlight grows, and dips when pressed.
+    const auto grow = [&](float near) { return 1.0f + (0.06f - 0.03f * press_) * near * motion(); };
+
+    // ---- the cards ----
+    for (int row = std::max(0, library_.first_row() - 1); row <= library_.last_row(); ++row)
+    {
+        const Game &game = games_[static_cast<std::size_t>(row)];
+        const float at = static_cast<float>(row) * pitch;
+        const float near = tween::clamp01(1.0f - std::fabs(library_.cursor() - at) / pitch) * focus;
+        const Rect r{card_x(at), kCardTop, size, size};
+        list.push_transform(grow(near), r.x + r.w * 0.5f, r.y + r.h * 0.5f, 0.0f, 0.0f);
+        if (game.remote)
+            remote_cover(c, game.cover, r, 18.0f, 0.9f);
+        else
+            cover(c, game.cover, r, 18.0f, 0.9f);
+        // A game being downloaded: how far it is, along the bottom of its card.
+        const Download *download = game.remote ? download_of(game.key) : nullptr;
+        if (download != nullptr && download->total > 0 &&
+            (download->state == DownloadState::downloading || download->state == DownloadState::verifying))
+        {
+            const float done = std::clamp(static_cast<float>(static_cast<double>(download->done) /
+                                                             static_cast<double>(download->total)),
+                                          0.0f, 1.0f);
+            const Rect bar{r.x + 24.0f, r.y + r.h - 22.0f, r.w - 48.0f, 6.0f};
+            list.rounded_rect(bar, 3.0f, theme::kScrim.with_alpha(0.7f));
+            list.rounded_rect({bar.x, bar.y, std::max(6.0f, bar.w * done), bar.h}, 3.0f, theme::kLime);
+        }
+        list.pop_transform();
+    }
+
+    // ---- the highlight: a lit frame that glides from card to card ----
+    const float x = card_x(library_.cursor());
+    if (focus > 0.01f)
+    {
+        const Rect r{x, kCardTop, size, size};
+        const float pulse = 0.5f + 0.5f * std::sin(c.time * 3.2f) * motion();
+        list.push_opacity(focus);
+        list.push_transform(grow(1.0f), r.x + r.w * 0.5f, r.y + r.h * 0.5f, 0.0f, 0.0f);
+        list.shadow({r.x - 6.0f, r.y - 6.0f, r.w + 12.0f, r.h + 12.0f}, 26.0f, 40.0f,
+                    theme::kLime.with_alpha(0.16f + 0.14f * pulse));
+        list.bordered_rect({r.x - 9.0f, r.y - 9.0f, r.w + 18.0f, r.h + 18.0f}, 26.0f, kWhite.with_alpha(0.0f),
+                           5.0f, gfx::mix(theme::kLime, theme::kLimePale, pulse));
+        list.pop_transform();
+        list.pop_opacity();
+    }
+
+    // ---- the selected game: its name over its card, its details under it ----
+    const Game &game = games_[static_cast<std::size_t>(library_.selected)];
+    const float shown = tween::clamp01(detail_.value);
+    const float left = std::max(kCardsLeft, x);
+    list.push_opacity((0.45f + 0.55f * focus) * shown);
+    list.push_transform(1.0f, 0.0f, 0.0f, 0.0f, (1.0f - shown) * 8.0f * motion());
+    text_fit(c, game.name, left, baseline(212.0f, 48.0f, theme::kHeading), theme::kHeading, theme::kLimePale,
+             kRight - left);
+    Color tone = theme::kMeta;
+    const std::string details =
+        game.remote ? remote_state(game, &tone) :
+                      game.format + "  /  " + game.size + "  /  " +
+                          addons_line(game.addons_short, game.mods, game.mods_on, true);
+    text_shrink(c, details, left, baseline(700.0f, 32.0f, theme::kSmall), theme::kSmall, tone,
+                kRight - left - 160.0f);
+    list.pop_transform();
+    list.pop_opacity();
+    text(c, list_position(library_.selected + 1, count), kRight, baseline(700.0f, 32.0f, theme::kSmall),
+         theme::kSmall, theme::kLimePale, Align::right);
+
+    // What the last press said, else what needs attention: a game that failed to start, or one
+    // without the language chosen.
+    const float line = baseline(744.0f, 32.0f, theme::kSmall);
+    if (!message_.empty())
+        notice(c, message_, kCardsLeft, line, theme::kSmall, message_warning_ ? theme::kWarning : theme::kLimePale,
+               1680.0f, message_warning_);
+    else if (!home_.status.empty())
+        notice_block(c, home_.status, kCardsLeft, line, theme::kSmall, 28.0f,
+                     home_.launch_failed ? theme::kWarning : theme::kCopy, 1680.0f, 1, home_.launch_failed);
+    else if (!game.language_note.empty())
+        notice(c, game.language_note, left, line, theme::kSmall, theme::kWarning, kRight - left, true);
+}
+
+void Launcher::draw_system_buttons(Canvas &c)
+{
+    gfx::DrawList &list = c.list;
+    static constexpr const char *kNames[] = {TR("Profiles"), TR("Settings"), TR("About")};
+    static_assert(std::size(kNames) == kSystemButtons);
+    for (int i = 0; i < kSystemButtons; ++i)
+    {
+        const float f = tween::clamp01(home_springs_[static_cast<std::size_t>(1 + i)].value);
+        const float cx = button_x(i);
+        list.push_transform(1.0f + (0.10f - 0.05f * press_) * f * motion(), cx, kButtonY, 0.0f, 0.0f);
+        if (f > 0.01f)
+            list.shadow({cx - kButtonRadius, kButtonY - kButtonRadius, 2.0f * kButtonRadius, 2.0f * kButtonRadius},
+                        kButtonRadius, 30.0f, theme::kLime.with_alpha(0.22f * f));
+        list.circle(cx, kButtonY, kButtonRadius, gfx::mix(theme::kGlass.with_alpha(0.82f), theme::kRowFocus, f));
+        list.ring(cx, kButtonY, kButtonRadius, 2.0f + 2.5f * f, gfx::mix(kWhite.with_alpha(0.16f), theme::kLime, f));
+        draw_mark(list, i, cx, kButtonY, gfx::mix(theme::kMuted, theme::kTitle, f));
+        list.pop_transform();
+        // Its name shows while it is focused.
+        list.push_opacity(f);
+        text(c, tr(kNames[i]), cx, baseline(kButtonY + 72.0f, 0.0f, theme::kSmall), theme::kSmall, theme::kText,
+             Align::center);
+        list.pop_opacity();
     }
 }
 
 void Launcher::draw_home(Canvas &c)
 {
     gfx::DrawList &list = c.list;
-    const bool ready = home_.setup_ready;
-    const bool continue_ready = ready && home_.last_exists;
-    const auto focus = [&](int index) { return home_springs_[static_cast<std::size_t>(index)].value; };
-    const auto measure = [&](std::string_view value, float size, float tracking = 0.0f)
-    { return text_width(c, value, size, tracking); };
     // Each band of the screen arrives a moment after the one above it.
-    const auto arrive = [&](int band)
-    { return tween::cubic_out((intro_ - 0.12f - 0.08f * static_cast<float>(band)) / 0.55f); };
     const auto begin_band = [&](int band, float rise)
     {
-        const float e = arrive(band);
+        const float e = tween::cubic_out((intro_ - 0.12f - 0.08f * static_cast<float>(band)) / 0.55f);
         list.push_opacity(e);
         list.push_transform(1.0f, 0.0f, 0.0f, 0.0f, (1.0f - e) * rise * motion());
     };
@@ -232,153 +401,64 @@ void Launcher::draw_home(Canvas &c)
         list.pop_transform();
         list.pop_opacity();
     };
-    // A focused surface grows a little and dips when pressed.
-    const auto begin_lift = [&](const Rect &r, float amount, float grow)
-    {
-        const float scale = 1.0f + (grow * amount - 0.035f * press_ * amount) * motion();
-        list.push_transform(scale, r.x + r.w * 0.5f, r.y + r.h * 0.5f, 0.0f,
-                            -3.0f * amount * motion());
-    };
 
-    // ---- header ----
+    // ---- top bar: who is playing, the controllers, the clock ----
     begin_band(0, -18.0f);
-    if (textures_.brand() != 0)
-        list.rounded_image(textures_.brand(), {120.0f, 72.0f, 72.0f, 72.0f},
-                           {0.0f, 0.0f, 1.0f, 1.0f}, 16.0f, kWhite);
-    text(c, "PROSPEROEDEN", 216.0f, baseline(72.0f, 44.0f, theme::kBrand), theme::kBrand,
-         theme::kText, Align::left, 3.0f);
-    // Who is playing is named once there is more than one profile to be.
-    const float edition = text(c, fill(tr("PS5 EDITION  /  {0}"), {version_}), 216.0f,
-                               baseline(120.0f, 28.0f, theme::kSmall), theme::kSmall, Color::rgb(0x9fac9e),
-                               Align::left, 1.0f);
-    if (profiles_.size() > 1 && !playing_.empty())
-        text_shrink(c, "/  " + playing_, 216.0f + edition + 16.0f, baseline(120.0f, 28.0f, theme::kSmall),
-                    theme::kSmall, theme::kLimePale, 300.0f);
-    static constexpr const char *kNav[] = {TR("Library"), TR("Settings"), TR("About")};
-    Rect nav[3];
-    float nav_right = kNavRight;
-    for (int i = 2; i >= 0; --i)
-    {
-        const float width = std::max(kNavWidth, measure(tr(kNav[i]), theme::kText24) + 48.0f);
-        nav[i] = {nav_right - width, 80.0f, width, 64.0f};
-        nav_right -= width + 8.0f;
-    }
-    for (int i = 0; i < 3; ++i)
-    {
-        const Rect r = nav[i];
-        const float f = focus(1 + i);
-        list.push_opacity(i == 0 && !ready ? 0.4f : 1.0f);
-        plate(c, kNavPlate, r, f);
-        text(c, tr(kNav[i]), r.x + r.w * 0.5f, baseline(r.y, 60.0f, theme::kText24), theme::kText24,
-             gfx::mix(theme::kMuted, theme::kText, f), Align::center);
-        list.pop_opacity();
-    }
-    text(c, clock_, 1800.0f, baseline(92.0f, 40.0f, theme::kClock), theme::kClock,
-         Color::rgb(0xc1cdc2), Align::right);
-    list.rounded_rect({120.0f, 160.0f, 1680.0f, 1.0f}, 0.0f, theme::kText.with_alpha(0.12f));
-    end_band();
-
-    // ---- continue playing ----
-    begin_band(1, 28.0f);
-    glass(c, kHero, 14.0f, theme::kGlass.with_alpha(0.60f), kWhite.with_alpha(0.125f));
-    cover(c, home_.last_cover, {168.0f, 272.0f, 336.0f, 336.0f}, 16.0f, 1.0f);
-    text(c, tr("CONTINUE PLAYING"), 560.0f, baseline(264.0f, 30.0f, theme::kSmall), theme::kSmall,
-         theme::kLime, Align::left, 3.0f);
-    text_block(c, home_.last_file.empty() ? tr("Your next adventure") : home_.last_title, 560.0f,
-               baseline(312.0f, 56.0f, theme::kDisplay), theme::kDisplay, 56.0f, theme::kText,
-               1120.0f, 2);
-    notice(c, home_.last_file.empty() ? tr("Choose a game from your library.") : home_.last_caption,
-           560.0f, baseline(424.0f, 36.0f, theme::kText24), theme::kText24,
-           home_.last_caption_warning ? theme::kWarning : Color::rgb(0xabb8ae), 1040.0f,
-           home_.last_caption_warning);
-    // The line under it ends before the controllers' label.
-    const float info_width =
-        kPadsRight - measure(tr("CONTROLLERS"), theme::kSmall, 3.0f) - 48.0f - 560.0f;
-    if (!home_.last_language.empty())
-        text_shrink(c,
-                    fill(tr("Add-ons: {0}  /  Language: {1}"),
-                         {addons_line(home_.last_addons, home_.last_mods, home_.last_mods_on),
-                          home_.last_language}),
-                    560.0f, baseline(462.0f, 30.0f, theme::kSmall), theme::kSmall,
-                    Color::rgb(0xabb8ae), info_width);
-    const char *first = continue_ready ? tr("Launch game") : tr("Open library");
-    const char *second = tr("Game details");
-    const float button = std::clamp(
-        std::max(measure(first, theme::kText24), measure(second, theme::kText24)) + 64.0f,
-        kButtonWidth, kButtonWidest);
-    const Rect continue_rect{560.0f, 504.0f, button, 72.0f};
-    const Rect details_rect{560.0f + button + 16.0f, 504.0f, button, 72.0f};
-    const auto hero_button = [&](const Rect &r, const char *label, float f, bool enabled)
-    {
-        list.push_opacity(enabled ? 1.0f : 0.4f);
-        begin_lift(r, f, 0.035f);
-        plate(c, kButtonPlate, r, f);
-        text_shrink(c, label, r.x + r.w * 0.5f, baseline(r.y, 70.0f, theme::kText24),
-                    theme::kText24, theme::kText, r.w - 32.0f, Align::center);
-        list.pop_transform();
-        list.pop_opacity();
-    };
-    hero_button(continue_rect, first, focus(0), ready);
-    hero_button(details_rect, second, focus(4), continue_ready);
-    text(c, tr("Eden emulator for PlayStation 5"), 560.0f, baseline(616.0f, 30.0f, theme::kSmall),
-         theme::kSmall, theme::kFaint);
+    const std::string who = playing_.empty() ? std::string{"ProsperoEden"} : playing_;
+    list.shadow({112.0f, kBarY - 40.0f, 80.0f, 80.0f}, 40.0f, 18.0f, Color{0.0f, 0.0f, 0.0f, 0.35f});
+    list.circle(152.0f, kBarY, 40.0f, theme::kLimeDeep);
+    list.ring(152.0f, kBarY, 40.0f, 3.0f, theme::kLime.with_alpha(0.85f));
+    text(c, initial(who), 152.0f, baseline(kBarY, 0.0f, theme::kHeading), theme::kHeading, theme::kTitle,
+         Align::center);
+    text_shrink(c, who, 214.0f, baseline(kBarY - 34.0f, 40.0f, theme::kText24), theme::kText24, theme::kText,
+                640.0f);
+    text(c, fill(tr("PS5 EDITION  /  {0}"), {version_}), 214.0f, baseline(kBarY + 4.0f, 30.0f, theme::kSmall),
+         theme::kSmall, theme::kMeta, Align::left, 1.0f);
     draw_controllers(c);
+    text(c, clock_, kRight, baseline(kBarY, 0.0f, theme::kClock), theme::kClock, Color::rgb(0xc1cdc2),
+         Align::right);
     end_band();
 
-    // ---- recently played, or what needs attention ----
+    begin_band(1, 28.0f);
+    draw_carousel(c);
+    end_band();
+
     begin_band(2, 28.0f);
-    if (!home_.status.empty())
-    {
-        const Rect panel{120.0f, 728.0f, 1680.0f, 152.0f};
-        const Color accent = home_.launch_failed ? theme::kWarning : theme::kLime;
-        glass(c, panel, 10.0f, Color::rgb(0x0a1611, 0.62f), kWhite.with_alpha(0.08f), 0.6f);
-        list.rounded_rect({panel.x, panel.y + 10.0f, 4.0f, panel.h - 20.0f}, 2.0f, accent);
-        notice_block(c, home_.status, 148.0f, baseline(752.0f, 36.0f, theme::kText24),
-                     theme::kText24, 36.0f, theme::kText, 1624.0f, 3, home_.launch_failed);
-    }
-    else
-    {
-        text(c, tr("RECENTLY PLAYED"), 120.0f, baseline(712.0f, 30.0f, theme::kSmall), theme::kSmall,
-             Color::rgb(0xc6d2c7), Align::left, 3.0f);
-        {
-            const float f = focus(9);
-            const float width =
-                std::max(kViewAllWidth, measure(tr("VIEW ALL GAMES"), theme::kSmall) + 48.0f);
-            const Rect r{1800.0f - width, 708.0f, width, 40.0f};
-            plate(c, kNavPlate, r, f);
-            text(c, tr("VIEW ALL GAMES"), r.x + r.w - 24.0f, baseline(r.y, 40.0f, theme::kSmall),
-                 theme::kSmall, gfx::mix(Color::rgb(0xafbbaf), theme::kLime, f), Align::right);
-        }
-        if (home_.recents.empty())
-            text(c, tr("Games you launch will appear here."), 120.0f,
-                 baseline(784.0f, 36.0f, theme::kText24), theme::kText24, theme::kMuted);
-        for (int i = 0; i < static_cast<int>(home_.recents.size()) && i < 4; ++i)
-        {
-            const Recent &recent = home_.recents[static_cast<std::size_t>(i)];
-            const Rect r = tile_rect(i);
-            const float f = focus(5 + i);
-            begin_lift(r, f, 0.03f);
-            plate(c, kTilePlate, r, f);
-            cover(c, recent.cover, {r.x + 24.0f, r.y + 24.0f, 96.0f, 96.0f}, 10.0f, 0.5f);
-            text_block(c, recent.title, r.x + 144.0f, baseline(r.y + 40.0f, 32.0f, theme::kText24),
-                       theme::kText24, 32.0f, gfx::mix(Color::rgb(0xd7e1d9), theme::kTitle, f),
-                       232.0f, 2);
-            list.pop_transform();
-        }
-    }
+    draw_system_buttons(c);
     end_band();
 
-    // ---- footer ----
+    // ---- footer: the console's state at the left, the buttons at the right ----
     begin_band(3, 0.0f);
-    list.rounded_rect({120.0f, 952.0f, 1680.0f, 1.0f}, 0.0f, theme::kText.with_alpha(0.10f));
-    static constexpr Hint kHints[] = {
-        {Pad::cross, TR("Select")}, {Pad::triangle, TR("Details")}, {Pad::dpad, TR("Navigate")}};
+    list.rounded_rect({120.0f, 956.0f, 1680.0f, 1.0f}, 0.0f, theme::kText.with_alpha(0.10f));
     std::string status = home_.system_status;
     if (services_.room_status().phase == Eden::Multiplayer::Phase::Connected)
         status += std::string{"  /  "} + tr("Multiplayer") + ": " + tr("Connected");
-    const float status_width = text_shrink(c, status, 1800.0f, 989.0f, theme::kSmall,
-                                          Color::rgb(0x9eac9f), 1120.0f, Align::right);
-    draw_hints(c, kHints, 3, 120.0f, 982.0f, theme::kMuted, 1680.0f - status_width - 48.0f);
+    const float status_width = text_shrink(c, status, kCardsLeft, baseline(988.0f, 0.0f, theme::kSmall),
+                                          theme::kSmall, Color::rgb(0x9eac9f), 760.0f);
+    const float room = 1680.0f - status_width - 48.0f;
+    const Game *game = home_focus_ == 0 && !games_.empty() ?
+                           &games_[static_cast<std::size_t>(library_.selected)] : nullptr;
+    static constexpr Hint kGame[] = {{Pad::cross, TR("Launch game")},
+                                     {Pad::triangle, TR("Game settings")},
+                                     {Pad::square, TR("Mods")},
+                                     {Pad::l1, TR("Page"), Pad::r1}};
+    static constexpr Hint kRemote[] = {{Pad::cross, TR("Download and play")},
+                                       {Pad::square, TR("Download")},
+                                       {Pad::l1, TR("Page"), Pad::r1}};
+    static constexpr Hint kQueued[] = {{Pad::cross, TR("Play when downloaded")},
+                                       {Pad::square, TR("Cancel download")},
+                                       {Pad::l1, TR("Page"), Pad::r1}};
+    static constexpr Hint kButtons[] = {{Pad::cross, TR("Select")}, {Pad::circle, TR("Back")}};
+    static constexpr Hint kNone[] = {{Pad::dpad, TR("Navigate")}};
+    if (game == nullptr)
+        draw_hints(c, home_focus_ == 0 ? kNone : kButtons, home_focus_ == 0 ? 1 : 2, kRight, 988.0f,
+                   theme::kMuted, room, Align::right);
+    else if (!game->remote)
+        draw_hints(c, kGame, 4, kRight, 988.0f, theme::kMuted, room, Align::right);
+    else if (download_of(game->key) != nullptr)
+        draw_hints(c, kQueued, 3, kRight, 988.0f, theme::kMuted, room, Align::right);
+    else
+        draw_hints(c, kRemote, 3, kRight, 988.0f, theme::kMuted, room, Align::right);
     end_band();
 }
 

@@ -106,9 +106,6 @@ struct Plate
 };
 extern const Plate kRowPlate;     // settings and dialog rows
 extern const Plate kListPlate;    // library, folder and language rows
-extern const Plate kButtonPlate;  // home hero buttons
-extern const Plate kTilePlate;    // recently played tiles
-extern const Plate kNavPlate;     // header navigation
 // The surface at rest, with `focus` (0..1) of the highlight blended over it.
 void plate(Canvas &c, const Plate &style, const Rect &r, float focus);
 // The surface at rest only (lists draw one gliding highlight over their rows).
@@ -155,10 +152,10 @@ struct Hint
 };
 float pad_width(Pad button, float size);
 void draw_pad(Canvas &c, Pad button, float x, float cy, float size, float alpha = 1.0f);
-// Hints left to right from x with their icons centred on cy; returns the width used. They are
-// drawn smaller when they would pass max_width (0: no limit).
+// Hints left to right from x (Align::right: ending at x) with their icons centred on cy; returns
+// the width used. They are drawn smaller when they would pass max_width (0: no limit).
 float draw_hints(Canvas &c, const Hint *hints, int count, float x, float cy, Color color,
-                 float max_width = 0.0f);
+                 float max_width = 0.0f, Align align = Align::left);
 
 // "3 OF 12" under a list.
 std::string list_position(int selected, int count);

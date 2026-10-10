@@ -9,7 +9,13 @@
                 static_cast<float>(scissor.extent.width), static_cast<float>(scissor.extent.height), 0, 1};
             cmdbuf.SetViewport(0, viewport);
             cmdbuf.SetScissor(0, scissor);
-            cmdbuf.BindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, hud_graphics_pipeline);
+            // The loading screen over its picture when there is one (vulkan_hud_prepare.inc).
+            const bool with_picture = hud.loading && loading_graphics_pipeline != VK_NULL_HANDLE;
+            const VkPipelineLayout constants_layout = with_picture ? loading_pipeline_layout : hud_pipeline_layout;
+            cmdbuf.BindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                with_picture ? loading_graphics_pipeline : hud_graphics_pipeline);
+            if (with_picture)
+                cmdbuf.BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, loading_pipeline_layout, 0, loading_set, {});
             auto constants = hud;
             if (hud.loading) {
                 // The loading scene fills the picture: tell it how large that is.
@@ -21,6 +27,6 @@
                 constants.y = hud_units(hud.y);
                 constants.width = render_area.height;
             }
-            cmdbuf.PushConstants(hud_pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, constants);
+            cmdbuf.PushConstants(constants_layout, VK_SHADER_STAGE_FRAGMENT_BIT, constants);
             cmdbuf.Draw(4, 1, 0, 0);
         }
