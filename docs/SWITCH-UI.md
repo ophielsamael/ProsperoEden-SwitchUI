@@ -38,8 +38,18 @@ No está hecha ni respaldada por BlackBearReloaded, el equipo de Eden, Sony ni N
 
 ## Versiones con las que está hecha y probada
 
-Esta versión parte de **ProsperoEden v1.000.100** (commit `8ed1b84`, `contentVersion` 01.000.100) y
-fue probada en una PS5 con Vulkan, con firmware de `sdk_version 0x12200005` (≈ 12.20).
+| | |
+|---|---|
+| **Proyecto base** | [ProsperoEden de BlackBearReloaded](https://github.com/blackbearreloaded/ProsperoEden) |
+| **Versión base** | **v1.000.100** (commit `8ed1b84`, `contentVersion` 01.000.100) |
+| **Firmware de la PS5 en el que se probó** | **12.20** (`sdk_version 0x12200005`), con el renderizador Vulkan |
+| Firmwares de PS5 que el proyecto original menciona en sus notas | 6.02, 7.40, 7.61, 12.70 y 13.60 |
+
+Esta versión **solo se ha probado en el firmware 12.20**. En otros firmwares funciona el launcher
+que ya traía el proyecto original, pero no se ha comprobado que el tema (carrusel, pantalla de carga)
+se vea igual. Las novedades y los problemas de cada firmware están en el
+[README](https://github.com/blackbearreloaded/ProsperoEden#readme) y en las
+[releases](https://github.com/blackbearreloaded/ProsperoEden/releases) del proyecto original.
 
 No tienes que elegir ni instalar las versiones de Eden y de las librerías: el propio proyecto las
 **fija** en `tools/deps.json` y `make` las descarga solas, comprobando su hash. Son estas:
