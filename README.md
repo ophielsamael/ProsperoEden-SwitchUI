@@ -14,6 +14,11 @@
 > picture and animated sprites. It contains no Nintendo content. Guide (in Spanish): installing,
 > making it your own and building it on Windows with WSL: [docs/SWITCH-UI.md](docs/SWITCH-UI.md).
 
+<p align="center">
+  <img src="docs/screenshots/01-home.png" width="720" alt="The game carousel">
+  <img src="docs/screenshots/06-loading.png" width="720" alt="The loading screen">
+</p>
+
 **ProsperoEden is an unofficial PlayStation 5 port of [Eden](https://github.com/eden-emulator/mirror)** - an accurate, high-performance emulator. All credit for the emulator core belongs to the Eden project and its contributors. ProsperoEden is not affiliated with or endorsed by the Eden team or Sony.
 
 This is an early alpha. Video, audio, controller input, and saves have been confirmed working. Compatibility and performance will vary between games. The current release is **v1.000.110**.

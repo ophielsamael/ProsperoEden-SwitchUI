@@ -72,7 +72,7 @@ class FakeServices final : public ui::Services
     }
     std::string version() override
     {
-        return "v1.000.040";
+        return "v1.000.100";
     }
     // The people who play on the preview's console.
     std::vector<ui::Profile> people{{"Eden", true}};

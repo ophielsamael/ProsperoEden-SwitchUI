@@ -22,6 +22,20 @@ No está hecha ni respaldada por BlackBearReloaded, el equipo de Eden, Sony ni N
 
   Funciona en los dos renderizadores, Vulkan y OpenGL.
 
+## Capturas
+
+Son del launcher dibujado en el PC con juegos de ejemplo (`tools/launcher/preview.sh`), con el mismo
+código, shaders y fuente que en la consola.
+
+| | |
+|---|---|
+| ![El carrusel](screenshots/01-home.png) | ![Moviéndose por el carrusel](screenshots/02-carousel.png) |
+| El carrusel de juegos: el último jugado primero | Moverse por él; la tarjeta elegida crece y se ilumina |
+| ![Botones de sistema](screenshots/03-system-buttons.png) | ![Ajustes de un juego](screenshots/04-game-settings.png) |
+| Los botones de sistema bajo el carrusel (↓) | △: ajustes del juego; el modo Docked/Handheld es la primera fila |
+| ![Pantalla de arranque](screenshots/05-start-screen.png) | ![Pantalla de carga](screenshots/06-loading.png) |
+| La pantalla de arranque al lanzar un juego | La pantalla de carga: imagen, un icono por paso y el personaje sobre la barra |
+
 > [!IMPORTANT]
 > **Este repositorio no incluye contenido de Nintendo ni de terceros.** Los sonidos, fondos e
 > iconos son los del ProsperoEden original, y los sprites de la pantalla de carga (un brote que
