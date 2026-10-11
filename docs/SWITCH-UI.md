@@ -36,6 +36,41 @@ No está hecha ni respaldada por BlackBearReloaded, el equipo de Eden, Sony ni N
 
 ---
 
+## Versiones con las que está hecha y probada
+
+Esta versión parte de **ProsperoEden v1.000.100** (commit `8ed1b84`, `contentVersion` 01.000.100) y
+fue probada en una PS5 con Vulkan, con firmware de `sdk_version 0x12200005` (≈ 12.20).
+
+No tienes que elegir ni instalar las versiones de Eden y de las librerías: el propio proyecto las
+**fija** en `tools/deps.json` y `make` las descarga solas, comprobando su hash. Son estas:
+
+| Pieza | Versión fijada |
+|---|---|
+| **Eden** (el emulador) | commit `5f142c7926d0c7fcbbd0ce30794d72f638a43b2a` del [mirror](https://github.com/eden-emulator/mirror) |
+| FFmpeg | commit `c7b5f1537d9c52efa50fd10d106ca015ddde1818` |
+| PS5 OpenGL SDK | 1.0.0 |
+| PS5 Payload SDK | v0.42 |
+| fmt / HarfBuzz / compiler-rt | 12.1.0 / 12.3.2 / LLVM 18.1.8 |
+| PS5 Mesa y Vulkan (Mihawk) | commits `0b2d6d1` (Mesa), `3f3ee69` (Vulkan), `95c08f2` (Payload SDK) |
+
+Con qué lo compilamos en Windows 11 + WSL 2:
+
+| Herramienta | Versión usada |
+|---|---|
+| Ubuntu (WSL) | 24.04 |
+| CMake | **3.31.6** (la 3.28 de Ubuntu 24.04 no sirve) |
+| LLVM / Clang | 18 y 21 (el script de Ubuntu 24.04 instala el 21) |
+| Python en Windows | 3.13, con Pillow 12 |
+| FFmpeg en Windows | 8.1 |
+| texconv | el último de DirectXTex (firmado por Microsoft) |
+
+Si usas otra versión de ProsperoEden o de Eden, lo más probable es que los cambios de esta guía
+necesiten pequeños ajustes (ver [Actualizar](#actualizar-a-una-versión-nueva-de-prosperoeden)).
+Para ver lo que tienes en tu copia: `make deps-status` lista cada pieza y si coincide con su versión
+fijada.
+
+---
+
 ## 1. Instalarla en la PS5 (sin compilar nada)
 
 Necesitas lo mismo que para el ProsperoEden original (su [README](../README.md)): una PS5 con
