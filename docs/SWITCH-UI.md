@@ -55,13 +55,16 @@ código, shaders y fuente que en la consola.
 | | |
 |---|---|
 | **Proyecto base** | [ProsperoEden de BlackBearReloaded](https://github.com/blackbearreloaded/ProsperoEden) |
-| **Versión base** | **v1.000.100** (commit `8ed1b84`, `contentVersion` 01.000.100) |
-| **Firmware de la PS5 en el que se probó** | **12.20** (`sdk_version 0x12200005`), con el renderizador Vulkan |
+| **Versión base** | **v1.000.110** (tag `v1.000.110`, commit `5e54c30`; `contentVersion` 01.000.110) |
+| **Firmware de la PS5 en el que se probó el tema** | **12.20** (`sdk_version 0x12200005`), con el renderizador Vulkan |
 | Firmwares de PS5 que el proyecto original menciona en sus notas | 6.02, 7.40, 7.61, 12.70 y 13.60 |
 
-Esta versión **solo se ha probado en el firmware 12.20**. En otros firmwares funciona el launcher
-que ya traía el proyecto original, pero no se ha comprobado que el tema (carrusel, pantalla de carga)
-se vea igual. Las novedades y los problemas de cada firmware están en el
+El tema **solo se ha probado en el firmware 12.20**, y en la **v1.000.100** del proyecto base. La
+v1.000.110 (que trae el multijugador local por salas de Eden y un Eden más reciente) está compilada
+y comprobada en el PC (el launcher y los shaders), pero **aún no se ha probado en la consola**. En
+otros firmwares funciona el launcher que ya traía el proyecto original, pero no se ha comprobado que
+el tema (carrusel, pantalla de carga) se vea igual. Las novedades y los problemas de cada firmware
+están en el
 [README](https://github.com/blackbearreloaded/ProsperoEden#readme) y en las
 [releases](https://github.com/blackbearreloaded/ProsperoEden/releases) del proyecto original.
 
@@ -70,12 +73,15 @@ No tienes que elegir ni instalar las versiones de Eden y de las librerías: el p
 
 | Pieza | Versión fijada |
 |---|---|
-| **Eden** (el emulador) | commit `5f142c7926d0c7fcbbd0ce30794d72f638a43b2a` del [mirror](https://github.com/eden-emulator/mirror) |
+| **Eden** (el emulador) | commit `67bada77f8a43a90da2e94e89b8e7da73c256989` del [mirror](https://github.com/eden-emulator/mirror) |
 | FFmpeg | commit `c7b5f1537d9c52efa50fd10d106ca015ddde1818` |
 | PS5 OpenGL SDK | 1.0.0 |
 | PS5 Payload SDK | v0.42 |
 | fmt / HarfBuzz / compiler-rt | 12.1.0 / 12.3.2 / LLVM 18.1.8 |
-| PS5 Mesa y Vulkan (Mihawk) | commits `0b2d6d1` (Mesa), `3f3ee69` (Vulkan), `95c08f2` (Payload SDK) |
+| PS5 Mesa y Vulkan (Mihawk) | commits `7b59ef2` (Mesa), `5b5e4fc` (Vulkan), `b83202b` (Payload SDK) |
+| Helper de acceso (Lapy) | commit `57fcc19` |
+
+(La v1.000.100 usaba Eden `5f142c79`, Mesa `0b2d6d1`, Vulkan `3f3ee69` y Payload SDK `95c08f2`.)
 
 Con qué lo compilamos en Windows 11 + WSL 2:
 
@@ -339,15 +345,15 @@ sudo ln -sf ~/.local/bin/cmake ~/.local/bin/ctest ~/.local/bin/cpack /usr/local/
 
 ## Actualizar a una versión nueva de ProsperoEden
 
-Los cambios de esta versión están en la rama `switch-ui-public`. Para llevarlos a una versión
-oficial nueva:
+Los cambios de esta versión están en la rama `switch-ui-public`, sobre la v1.000.100 del proyecto, y
+en `switch-ui-public-110` sobre la v1.000.110. Para llevarlos a una versión oficial nueva:
 
 ```bash
 git remote add upstream https://github.com/blackbearreloaded/ProsperoEden
 ```
 
 ```bash
-git fetch upstream && git rebase upstream/main
+git fetch upstream --tags && git switch -c mi-actualizacion && git rebase upstream/main
 ```
 
 Si git avisa de conflictos, son archivos que el proyecto también cambió:
@@ -356,7 +362,30 @@ Si git avisa de conflictos, son archivos que el proyecto también cambió:
 - `tools/prepare-vulkan-port.py`: si cambia la parte de Eden que parchea, el build lo dice con
   *Pinned Vulkan anchor changed*.
 
-Resuélvelos, compila con `make package` y copia la carpeta a la consola.
+Pasó al actualizar de la v1.000.100 a la v1.000.110, con solo dos conflictos pequeños:
+- `home.cpp`: el proyecto añadió al pie de la pantalla "Multijugador: Conectado"; hay que ponerlo en el
+  pie del carrusel, junto al estado de la consola.
+- `vulkan_hud.frag`: el proyecto pasó el estado del shader de 24 a 28 palabras y lo copia a un array
+  `state[24]`; la lectura de la imagen de fondo de la pantalla de carga tiene que seguir usándolo.
+
+Resuélvelos y continúa con `git add <archivo>` y `git rebase --continue`.
+
+Antes de compilar, mira si el proyecto fijó otras versiones de Eden o de sus librerías:
+
+```bash
+make deps-status
+```
+
+Las líneas `present at X, pinned Y` son copias que `make` no mueve solo: las de `../mihawk-*-review`
+(Mesa, Vulkan y Payload SDK). Pasa cada una a su commit fijado:
+
+```bash
+git -C ../mihawk-mesa-review fetch origin && git -C ../mihawk-mesa-review checkout --detach <commit fijado>
+```
+
+(igual para `../mihawk-vulkan-review` y `../mihawk-sdk-review`; los commits están en
+`tools/deps.json`). Después `make package` y copia la carpeta a la consola. Con un Mesa nuevo el
+build reconstruye RADV, así que la primera compilación tarda bastante más.
 
 ---
 
