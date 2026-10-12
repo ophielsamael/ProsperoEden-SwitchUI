@@ -22,6 +22,11 @@ No está hecha ni respaldada por BlackBearReloaded, el equipo de Eden, Sony ni N
 
   Funciona en los dos renderizadores, Vulkan y OpenGL.
 
+  **No es la pantalla de carga original de ProsperoEden**, que tiene fondo negro, un punto junto a
+  cada paso y la barra sin nada encima. El texto, el porcentaje y la barra son los mismos: se añaden
+  la imagen de fondo y los sprites, que van cada uno en su archivo ([4.6](#46-sprites-de-la-pantalla-de-carga)
+  y [4.7](#47-fondo-de-la-pantalla-de-carga)).
+
 ## Capturas
 
 Son del launcher dibujado en el PC con juegos de ejemplo (`tools/launcher/preview.sh`), con el mismo
@@ -319,6 +324,10 @@ py tools/launcher/render-art.py loading
 
 Escribe `headless/prosperoeden/ui/art/loading-backdrop.rgba`, la imagen ya decodificada a 1920×1080,
 porque el emulador la sube a la GPU tal cual.
+
+**Para quitar la imagen y dejar el fondo negro de siempre**, borra ese archivo (en la carpeta
+`ui/art` de la consola o antes de compilar). Sin él, la pantalla de carga usa su fondo oscuro; los
+sprites de [4.6](#46-sprites-de-la-pantalla-de-carga) se siguen dibujando.
 
 ---
 
