@@ -191,10 +191,10 @@ make toolchain
 ### 3.2 Descargar y compilar
 
 ```bash
-git clone -b switch-ui-public https://github.com/USUARIO/ProsperoEden ~/ProsperoEden
+git clone -b switch-ui-public-110 https://github.com/ophielsamael/ProsperoEden ~/ProsperoEden
 ```
 
-(`USUARIO` es la cuenta de GitHub donde está publicada esta versión.)
+(`switch-ui-public-110` es la rama con esta versión, sobre la v1.000.110 del proyecto base.)
 
 ```bash
 cd ~/ProsperoEden && make package
