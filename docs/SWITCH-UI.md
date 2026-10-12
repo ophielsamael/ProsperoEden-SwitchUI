@@ -57,7 +57,7 @@ código, shaders y fuente que en la consola.
 > [!WARNING]
 > ProsperoEden avisa al abrirse cuando hay una versión oficial nueva. **Si aceptas instalarla,
 > sustituye esta versión** (tus partidas y ajustes se conservan, el tema no). Para seguir con este
-> tema, elige no instalarla y actualiza con un build de esta rama (ver [Actualizar](#actualizar-a-una-versión-nueva-de-prosperoeden)).
+> tema, elige **Skip** en ese aviso y actualiza con un build de esta rama (ver [Actualizar](#actualizar-a-una-versión-nueva-de-prosperoeden)).
 
 ---
 
@@ -116,8 +116,9 @@ fijada.
 
 ## 1. Instalarla en la PS5 (sin compilar nada)
 
-Necesitas lo mismo que para el ProsperoEden original (su [README](../README.md)): una PS5 con
-homebrew y un servidor FTP en la consola.
+Necesitas lo mismo que para el ProsperoEden original (su
+[README](https://github.com/blackbearreloaded/ProsperoEden#readme) explica la preparación de la PS5,
+las claves, el firmware y los juegos): una PS5 con homebrew y un servidor FTP en la consola.
 
 1. Descarga el ZIP de la release y descomprímelo: dentro hay una carpeta `PPSA99008`.
 2. Cierra ProsperoEden en la PS5.
