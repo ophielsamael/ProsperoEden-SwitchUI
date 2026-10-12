@@ -59,11 +59,13 @@ código, shaders y fuente que en la consola.
 | **Firmware de la PS5 en el que se probó el tema** | **12.20** (`sdk_version 0x12200005`), con el renderizador Vulkan |
 | Firmwares de PS5 que el proyecto original menciona en sus notas | 6.02, 7.40, 7.61, 12.70 y 13.60 |
 
-El tema **solo se ha probado en el firmware 12.20**, y en la **v1.000.100** del proyecto base. La
-v1.000.110 (que trae el multijugador local por salas de Eden y un Eden más reciente) está compilada
-y comprobada en el PC (el launcher y los shaders), pero **aún no se ha probado en la consola**. En
-otros firmwares funciona el launcher que ya traía el proyecto original, pero no se ha comprobado que
-el tema (carrusel, pantalla de carga) se vea igual. Las novedades y los problemas de cada firmware
+El tema **solo se ha probado en el firmware 12.20**, con el renderizador Vulkan, y funciona tanto
+con la **v1.000.100** como con la **v1.000.110** del proyecto base (esta última trae el multijugador
+local por salas de Eden y un Eden más reciente). Lo probado en la consola es el paquete del autor,
+con sus propios sonidos, fondos y sprites; el de este repositorio tiene el mismo código y solo cambian
+esos archivos (sus sprites se han comprobado dibujando la pantalla de carga en el PC). En otros
+firmwares funciona el launcher que ya traía el proyecto original, pero no se ha comprobado que el
+tema (carrusel, pantalla de carga) se vea igual. Las novedades y los problemas de cada firmware
 están en el
 [README](https://github.com/blackbearreloaded/ProsperoEden#readme) y en las
 [releases](https://github.com/blackbearreloaded/ProsperoEden/releases) del proyecto original.
