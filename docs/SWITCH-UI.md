@@ -57,7 +57,7 @@ código, shaders y fuente que en la consola.
 > [!WARNING]
 > ProsperoEden avisa al abrirse cuando hay una versión oficial nueva. **Si aceptas instalarla,
 > sustituye esta versión** (tus partidas y ajustes se conservan, el tema no). Para seguir con este
-> tema, elige **Skip** en ese aviso y actualiza con un build de esta rama (ver [Actualizar](#actualizar-a-una-versión-nueva-de-prosperoeden)).
+> tema, elige **Omitir** (*Skip* en inglés) en ese aviso y actualiza con un build de esta rama (ver [Actualizar](#actualizar-a-una-versión-nueva-de-prosperoeden)).
 
 ---
 

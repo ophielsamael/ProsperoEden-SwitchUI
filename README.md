@@ -40,7 +40,7 @@ Necesitas lo mismo que para ProsperoEden (una PS5 con homebrew, tus claves, firm
 
 > [!WARNING]
 > ProsperoEden avisa al abrirse cuando hay una versión oficial nueva. **Si aceptas instalarla, sustituye esta
-> versión** (tus datos se conservan, el tema no). Para seguir con él, elige **Skip**.
+> versión** (tus datos se conservan, el tema no). Para seguir con él, elige **Omitir** (*Skip* en inglés) en ese aviso.
 
 ## Guía completa
 
