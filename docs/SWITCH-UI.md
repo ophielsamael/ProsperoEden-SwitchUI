@@ -40,6 +40,12 @@ código, shaders y fuente que en la consola.
 | Los botones de sistema bajo el carrusel (↓) | △: ajustes del juego; el modo Docked/Handheld es la primera fila |
 | ![Pantalla de arranque](screenshots/05-start-screen.png) | ![Pantalla de carga](screenshots/06-loading.png) |
 | La pantalla de arranque al lanzar un juego | La pantalla de carga: imagen, un icono por paso y el personaje sobre la barra |
+| ![Pantalla de carga al 20 %](screenshots/07-loading-20.png) | ![Pantalla de carga al 85 %](screenshots/08-loading-85.png) |
+| La carga al 20 %: dos pasos hechos (visto) y uno en curso (reloj de arena) | La carga al 85 %: el personaje llega al final de la barra |
+| ![Menú de multijugador](screenshots/09-multiplayer.png) | ![Home con multijugador conectado](screenshots/10-home-multiplayer.png) |
+| Ajustes > Multijugador (novedad de la v1.000.110) | El home avisa en el pie cuando hay una sala conectada |
+| ![Descarga desde un servidor](screenshots/11-download.png) | |
+| Un juego de un servidor de descargas, con el progreso en su tarjeta | |
 
 > [!IMPORTANT]
 > **Este repositorio no incluye contenido de Nintendo ni de terceros.** Los sonidos, fondos e
