@@ -132,7 +132,7 @@ struct Preferences {
     bool large_text = false;             // Settings > Accessibility: the launcher's look
     bool high_contrast = false;
     bool reduce_motion = false;
-    std::string theme = "canopy";        // Settings > Theme: the launcher's look, by its id
+    std::string theme = "switch";        // Settings > Theme: the launcher's look, by its id
     ButtonMapping mapping = kDefaultMapping;  // Settings > Controls > Button mapping
     int controller = -1;                 // a game's own Controller type (kControllerKeys); -1: automatic
     bool immediate_logs = false;         // Settings > Diagnostics: log lines written as they come

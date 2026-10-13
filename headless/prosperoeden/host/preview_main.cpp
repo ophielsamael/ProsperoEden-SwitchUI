@@ -1213,11 +1213,12 @@ int main(int argc, char **argv)
         preferences.reduce_motion = names.find("calm") != std::string_view::npos;
         services.set_preferences(preferences);
     }
-    // PE_THEME=<id>: the launcher in that theme (pe/ui/theme.cpp), as if chosen in Settings.
-    if (const char *theme = std::getenv("PE_THEME"); theme != nullptr && theme[0] != 0)
+    // PE_THEME=<id>: the launcher in that theme (pe/ui/theme.cpp), as if chosen in Settings. Without
+    // it, Canopy: the tour's checks walk the original home screen (the default theme has a carousel).
     {
+        const char *theme = std::getenv("PE_THEME");
         pe::ui::Preferences preferences = services.preferences();
-        preferences.theme = theme;
+        preferences.theme = theme != nullptr && theme[0] != 0 ? theme : "canopy";
         services.set_preferences(preferences);
     }
     pe::ui::Textures textures(batch, services);
