@@ -364,7 +364,16 @@ sudo ln -sf ~/.local/bin/cmake ~/.local/bin/ctest ~/.local/bin/cpack /usr/local/
 ## Actualizar a una versión nueva de ProsperoEden
 
 Los cambios de esta versión están en la rama `switch-ui-public`, sobre la v1.000.100 del proyecto, y
-en `switch-ui-public-110` sobre la v1.000.110. Para llevarlos a una versión oficial nueva:
+en `switch-ui-public-110` sobre la v1.000.110. Para llevarlos a una versión oficial nueva, abre la
+terminal de Ubuntu (WSL) y **entra primero en la carpeta del proyecto**: los comandos de git solo
+funcionan dentro de ella, y si los ejecutas desde `~` dan *fatal: not a git repository*.
+
+```bash
+cd ~/ProsperoEden
+```
+
+(Si lo clonaste en otro sitio, entra en esa carpeta; `git status` debe responder con el nombre de la rama,
+no con un error.) Después, añade el proyecto original como `upstream` (solo la primera vez):
 
 ```bash
 git remote add upstream https://github.com/blackbearreloaded/ProsperoEden
