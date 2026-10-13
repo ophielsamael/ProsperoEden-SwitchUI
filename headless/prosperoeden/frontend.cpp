@@ -233,16 +233,21 @@ std::string RunApp(const std::string& launch_error, bool first_start, Eden::Mult
         // Sound: its own thread feeds the console's audio port from the mixer.
         auto mixer = std::make_unique<pe::audio::Mixer>();
         pe::audio::SoundBank sounds;
-        std::vector<std::string> sound_errors;
         // The theme's own folder of cues when it has one; the launcher's when that one is missing.
-        int sound_files = 0;
-        if (*pe::ui::th().sounds)
-            sound_files = sounds.load(Eden::AppFile("ui/sounds/") + pe::ui::th().sounds, &sound_errors);
-        if (sound_files == 0) {
-            sound_errors.clear();
-            sound_files = sounds.load(Eden::AppFile("ui/sounds"), &sound_errors);
-        }
-        for (const auto& error : sound_errors) Eden::Report("menu sound", error.c_str());
+        const auto load_sounds = [&sounds] {
+            std::vector<std::string> errors;
+            int files = 0;
+            if (*pe::ui::th().sounds) files = sounds.load(Eden::AppFile("ui/sounds/") + pe::ui::th().sounds, &errors);
+            if (files == 0) {
+                errors.clear();
+                files = sounds.load(Eden::AppFile("ui/sounds"), &errors);
+            }
+            for (const auto& error : errors) Eden::Report("menu sound", error.c_str());
+            return files;
+        };
+        const int sound_files = load_sounds();
+        int theme_in_use = pe::ui::theme_index();
+        bool sounds_stale = false;
         pe::ps5::AudioOut audio;
         const bool audio_ready = Eden::AudioOutReady() && audio.start(*mixer);
         if (!audio_ready) Eden::Report("menu sound", "Audio output is not available; the launcher stays silent");
@@ -365,6 +370,18 @@ std::string RunApp(const std::string& launch_error, bool first_start, Eden::Mult
                 viewport = pe::gfx::fit_viewport(display.width(), display.height());
                 std::fprintf(stderr, "EDEN_LAUNCHER display=%dx%d reopened_ms=%lld\n", display.width(),
                              display.height(), Milliseconds(Clock::now() - reopen));
+            }
+            if (pe::ui::theme_index() != theme_in_use) {
+                // A theme chosen in Settings > Theme: its artwork at once, its sounds once the cues
+                // playing have ended (the mixer reads them where they are).
+                theme_in_use = pe::ui::theme_index();
+                if (!textures.load_art(Eden::AppFile("ui")))
+                    Eden::Report("menu", "Launcher art is incomplete; check the app's ui/art folder");
+                sounds_stale = true;
+            }
+            if (sounds_stale && mixer->active_voices() == 0) {
+                std::fprintf(stderr, "EDEN_LAUNCHER theme=%s sounds=%d\n", pe::ui::th().id, load_sounds());
+                sounds_stale = false;
             }
             for (const pe::audio::Cue cue : launcher.take_cues()) sounds.play(*mixer, cue);
             if (launcher.menu_volume() != menu_volume) {

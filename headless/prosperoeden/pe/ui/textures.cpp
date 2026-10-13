@@ -40,6 +40,8 @@ bool Textures::load_art(const std::string &directory)
             sys::log("art %s could not be read", name.c_str());
             return false;
         }
+        // Read again when the theme changes: the one it replaces goes.
+        batch_.delete_texture(*texture);
         *texture = create(image);
         return *texture != 0;
     };
