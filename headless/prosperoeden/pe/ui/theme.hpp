@@ -107,6 +107,10 @@ struct Theme
 
     // ---- sound: a folder of ui/sounds with its own cues ("": the launcher's) ----
     const char *sounds = "";
+
+    // ---- the screen shown while a game loads (drawn by the emulator, headless/loading_scene.glsl) ----
+    const char *loading_picture = ""; // in the art folder, behind everything ("": the cover's colours)
+    bool loading_sprites = false;     // the walker on a bar and a mark for each step (loading_sprite.glsl)
 };
 
 // The theme in use. Read where things are drawn, so a change of theme shows in the next frame.

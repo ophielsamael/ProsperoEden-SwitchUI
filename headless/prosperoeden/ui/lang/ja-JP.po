@@ -1792,6 +1792,10 @@ msgstr "サンカク"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "熱帯の夕暮れ、深緑のガラス、ライム色。"
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "フラットなダークグレーとシアン。専用のサウンドとロード画面付き。"
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "再試行"

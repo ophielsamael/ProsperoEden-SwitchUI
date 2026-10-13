@@ -1792,6 +1792,10 @@ msgstr "Triunghi"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "Amurg tropical, sticlă verde-închis și lime."
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "Gri închis plat și cyan, cu sunete și ecran de încărcare proprii."
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "Încearcă din nou"

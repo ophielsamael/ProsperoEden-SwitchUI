@@ -6,6 +6,7 @@ layout(push_constant) uniform Text { uint glyphs[28]; uint width; uint x; uint y
 layout(set = 0, binding = 0) uniform sampler2D loading_art;
 layout(location = 0) out vec4 color;
 #include "loading_text.glsl"
+#include "loading_sprite.glsl"
 #include "loading_scene.glsl"
 void main() {
     // Vulkan push-constant arrays require dynamically uniform indices. Load

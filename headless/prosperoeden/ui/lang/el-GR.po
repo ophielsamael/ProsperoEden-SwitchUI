@@ -1792,6 +1792,10 @@ msgstr "Τρίγωνο"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "Τροπικό λυκόφως, σκούρο πράσινο γυαλί και λάιμ."
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "Επίπεδο σκούρο γκρι και κυανό, με δικούς του ήχους και οθόνη φόρτωσης."
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "Δοκιμή ξανά"

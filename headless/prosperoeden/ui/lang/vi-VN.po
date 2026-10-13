@@ -1792,6 +1792,10 @@ msgstr "Tam giác"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "Hoàng hôn nhiệt đới, kính xanh lục đậm và xanh chanh."
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "Xám đậm phẳng và xanh lơ, kèm âm thanh và màn hình tải riêng."
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "Thử lại"

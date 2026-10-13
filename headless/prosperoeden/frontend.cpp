@@ -6,6 +6,7 @@
 
 #include "assets_dir.h"
 #include "hud.h"
+#include "loading_art.h"
 #include "audio_out_init.h"
 #include "boot_trace.h"
 #include "diagnostics.h"
@@ -233,7 +234,14 @@ std::string RunApp(const std::string& launch_error, bool first_start, Eden::Mult
         auto mixer = std::make_unique<pe::audio::Mixer>();
         pe::audio::SoundBank sounds;
         std::vector<std::string> sound_errors;
-        const int sound_files = sounds.load(Eden::AppFile("ui/sounds"), &sound_errors);
+        // The theme's own folder of cues when it has one; the launcher's when that one is missing.
+        int sound_files = 0;
+        if (*pe::ui::th().sounds)
+            sound_files = sounds.load(Eden::AppFile("ui/sounds/") + pe::ui::th().sounds, &sound_errors);
+        if (sound_files == 0) {
+            sound_errors.clear();
+            sound_files = sounds.load(Eden::AppFile("ui/sounds"), &sound_errors);
+        }
         for (const auto& error : sound_errors) Eden::Report("menu sound", error.c_str());
         pe::ps5::AudioOut audio;
         const bool audio_ready = Eden::AudioOutReady() && audio.start(*mixer);
@@ -418,6 +426,9 @@ std::string RunApp(const std::string& launch_error, bool first_start, Eden::Mult
             };
             Eden::Loading::Palette(word(theme.accent), word(theme.accent_pale), word(theme.accent_deep),
                                    word(theme.base));
+            // And its picture and sprites, when it has them (loading_art.h).
+            Eden::Loading::Look(*theme.loading_picture ? Eden::AppFile("ui/art/") + theme.loading_picture : "",
+                                theme.loading_sprites);
         }
         // Let the last sound end (the screen is already dark), then give everything back.
         for (int wait = 0; audio_ready && wait < 60 && mixer->active_voices() > 0; ++wait) sceKernelUsleep(10000);

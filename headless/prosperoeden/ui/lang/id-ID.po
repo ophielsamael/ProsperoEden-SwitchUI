@@ -1792,6 +1792,10 @@ msgstr "Segitiga"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "Senja tropis, kaca hijau tua, dan hijau limau."
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "Abu-abu gelap datar dan sian, dengan suara dan layar pemuatan sendiri."
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "Coba lagi"

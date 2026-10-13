@@ -1792,6 +1792,10 @@ msgstr "Трикутник"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "Тропічні сутінки, темно-зелене скло та лайм."
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "Плаский темно-сірий і блакитний, із власними звуками та екраном завантаження."
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "Повторити"

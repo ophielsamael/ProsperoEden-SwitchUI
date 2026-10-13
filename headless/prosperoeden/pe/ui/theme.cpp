@@ -81,9 +81,68 @@ Theme canopy()
     return t;
 }
 
+// Switch: a handheld console's menu, flat dark grey with a cyan focus. Its own artwork, sounds
+// and loading screen (a picture behind it, a walker on a bar, a mark for each step).
+Theme switch_theme()
+{
+    Theme t;
+    // The kit's flat tiles: opaque panels, crisp corners, no glass.
+    theme_from_kit("tiles", &t);
+    t.id = "switch";
+    t.name = "Switch";
+    t.summary = TR("Flat dark grey and cyan, with its own sounds and loading screen.");
+
+    t.base = rgb(0x1b1c1e);
+    t.scrim = rgb(0x0e0f10);
+    t.glass = rgb(0x2b2d30);
+    t.panel = rgb(0x232426);
+    t.panel_edge = rgb(0x5a5d62);
+    t.row = rgb(0x323438);
+    t.row_edge = rgb(0x55585d);
+    t.row_focus = rgb(0x3a4950);
+
+    t.accent = rgb(0x00c3e3);
+    t.accent_deep = rgb(0x0b5f78);
+    t.accent_pale = rgb(0x9fe9f5);
+    t.on_accent = rgb(0x062029);
+    t.highlight = rgb(0xe8f8ff);
+
+    t.text = rgb(0xf4f5f6);
+    t.title = rgb(0xffffff);
+    t.value = rgb(0xf0f1f2);
+    t.body = rgb(0xe0e2e4);
+    t.copy = rgb(0xc8cbcf);
+    t.meta = rgb(0xb6babf);
+    t.label = rgb(0xaeb2b7);
+    t.muted = rgb(0xa8acb1);
+    t.faint = rgb(0x9a9ea4);
+    t.warning = rgb(0xff8a7a);
+    t.rule = rgb(0x4a4d52);
+
+    t.radius_row = 12.0f;
+    t.radius_card = 16.0f;
+    t.radius_panel = 20.0f;
+    t.pill_chips = false;
+    t.focus_width = 3.0f;
+    t.focus_glow = 18.0f;
+    t.glass_panels = false;
+
+    t.backdrop = "switch-backdrop.tga";
+    t.backdrop_blur = "switch-backdrop-blur.tga";
+    t.brand = "switch-brand.tga";
+    t.light_x = 0.5f;
+    t.light_y = 0.3f;
+    t.motes = 0;
+    t.drift = 0.4f;
+    t.sounds = "switch";
+    t.loading_picture = "switch-loading.tga";
+    t.loading_sprites = true;
+    return t;
+}
+
 struct Store
 {
-    std::array<Theme, 1> all{canopy()};
+    std::array<Theme, 2> all{canopy(), switch_theme()};
     int index = 0;
     Theme active = all[0];
 };

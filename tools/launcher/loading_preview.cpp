@@ -4,10 +4,12 @@
 //
 // usage: loading_preview <headless dir> <output dir> [width height [cover.tga]]
 // The shader is compiled as the OpenGL renderer compiles it on the console (graphics.cpp: a
-// "#version 330 core" line, the picture's sampler, loading_text.glsl, loading_scene.glsl, the
-// uniforms and a main()), and drawn at a few moments of a game's start through Mesa's surfaceless
-// EGL. The picture is built by the console's own code (loading_art.h) from the cover given, a TGA
-// as the launcher keeps them, or from one drawn here.
+// "#version 330 core" line, the picture's sampler, loading_text.glsl, loading_sprite.glsl,
+// loading_scene.glsl, the uniforms and a main()), and drawn at a few moments of a game's start
+// through Mesa's surfaceless EGL. The picture is built by the console's own code (loading_art.h)
+// from the cover given, a TGA as the launcher keeps them, or from one drawn here.
+// A theme's look: PE_LOADING_PICTURE names its picture (a TGA), PE_LOADING_SPRITES=1 draws its
+// sprites.
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -133,7 +135,8 @@ int main(int argc, char **argv)
         std::fprintf(stderr, "no surfaceless EGL OpenGL 4.5 context\n");
         return 1;
     }
-    const std::string scene = read(source + "/loading_text.glsl") + read(source + "/loading_scene.glsl");
+    const std::string scene = read(source + "/loading_text.glsl") + read(source + "/loading_sprite.glsl") +
+                              read(source + "/loading_scene.glsl");
     if (scene.size() < 1000)
     {
         std::fprintf(stderr, "cannot read the shader from %s\n", source.c_str());
@@ -207,7 +210,34 @@ int main(int argc, char **argv)
     {
         with_cover = Eden::Loading::MakeArt(sample_cover(256).data(), 256, 256);
     }
-    const Eden::Loading::Art pictures[] = {Eden::Loading::Art{}, with_cover};
+    Eden::Loading::Art pictures[] = {Eden::Loading::Art{}, with_cover};
+    if (const char *path = std::getenv("PE_LOADING_PICTURE"); path && *path)
+    {
+        int picture_width = 0;
+        int picture_height = 0;
+        std::vector<std::uint8_t> picture;
+        if (!Eden::Loading::ReadCover(path, picture_width, picture_height, picture))
+        {
+            std::fprintf(stderr, "cannot read the picture %s\n", path);
+            return 1;
+        }
+        for (Eden::Loading::Art &art : pictures)
+            Eden::Loading::AddPicture(art, picture.data(), picture_width, picture_height);
+    }
+    const char *sprites = std::getenv("PE_LOADING_SPRITES");
+    const GLuint with_sprites = sprites && std::string(sprites) == "1" ? 1 : 0;
+    // PE_LOADING_PALETTE: the theme's accent, pale accent, deep accent and base, as RRGGBB,RRGGBB,...
+    std::array<GLuint, 4> palette{};
+    if (const char *colours = std::getenv("PE_LOADING_PALETTE"))
+    {
+        char *at = const_cast<char *>(colours);
+        for (GLuint &colour : palette)
+        {
+            colour = 0x01000000u | (static_cast<GLuint>(std::strtoul(at, &at, 16)) & 0xffffffu);
+            if (*at == ',')
+                ++at;
+        }
+    }
     GLuint textures[2]{};
     glGenTextures(2, textures);
     for (int i = 0; i < 2; ++i)
@@ -233,6 +263,12 @@ int main(int argc, char **argv)
         const Eden::Loading::Art &picture = pictures[moment.cover ? 1 : 0];
         state[6] = static_cast<GLuint>(picture.cover_width) | static_cast<GLuint>(picture.cover_height) << 16;
         state[7] = state[1] * 1000;
+        state[12] = static_cast<GLuint>(picture.picture_row);
+        state[13] = static_cast<GLuint>(picture.picture_width) | static_cast<GLuint>(picture.picture_height) << 16;
+        state[14] = with_sprites;
+        for (std::size_t i = 0; i < palette.size(); ++i)
+            if (palette[i])
+                state[8 + i] = palette[i];
         glBindTexture(GL_TEXTURE_2D, textures[moment.cover ? 1 : 0]);
         glUniform1f(glGetUniformLocation(program, "seconds"), moment.seconds);
         glUniform1uiv(glGetUniformLocation(program, "state"), 24, state.data());

@@ -11,7 +11,13 @@
   controller.tga     a controller in white on transparent, tinted by the home screen: 144x100,
                      twice the size it is drawn at
 
-render-art.py [name...] renders only the named pictures (backdrop, brand, controller).
+and the Switch theme's own (pe/ui/theme.cpp), from the sce_sys/switch-*-source.png pictures:
+
+  switch-backdrop.tga, switch-backdrop-blur.tga, switch-brand.tga  as the three above
+  switch-loading.tga  the picture behind a game's loading screen (headless/loading_scene.glsl),
+                      1920x1080
+
+render-art.py [name...] renders only the named pictures (backdrop, brand, controller, switch).
 """
 
 import sys
@@ -113,17 +119,21 @@ def controller():
 
 def main():
     ART.mkdir(parents=True, exist_ok=True)
-    wanted = set(sys.argv[1:]) or {"backdrop", "brand", "controller"}
-    if "backdrop" in wanted:
-        source = Image.open(ROOT / "sce_sys/background-source.png").convert("RGB")
-        art = backdrop(source)
-        save_tga(grain(art, .025), "backdrop.tga")
-        # A quarter of the size, blurred until only light and colour remain.
-        small = art.resize((512, 288), Image.Resampling.LANCZOS).filter(ImageFilter.GaussianBlur(9))
-        save_tga(small, "backdrop-blur.tga")
-    if "brand" in wanted:
-        icon = Image.open(ROOT / "sce_sys/icon-source.png").convert("RGBA")
-        save_tga(icon.resize((384, 384), Image.Resampling.LANCZOS), "brand.tga")
+    wanted = set(sys.argv[1:]) or {"backdrop", "brand", "controller", "switch"}
+    for prefix in ("", "switch-"):
+        if (prefix[:-1] or "backdrop") in wanted:
+            source = Image.open(ROOT / f"sce_sys/{prefix}background-source.png").convert("RGB")
+            art = backdrop(source)
+            save_tga(grain(art, .025), f"{prefix}backdrop.tga")
+            # A quarter of the size, blurred until only light and colour remain.
+            small = art.resize((512, 288), Image.Resampling.LANCZOS).filter(ImageFilter.GaussianBlur(9))
+            save_tga(small, f"{prefix}backdrop-blur.tga")
+        if (prefix[:-1] or "brand") in wanted:
+            icon = Image.open(ROOT / f"sce_sys/{prefix}icon-source.png").convert("RGBA")
+            save_tga(icon.resize((384, 384), Image.Resampling.LANCZOS), f"{prefix}brand.tga")
+    if "switch" in wanted:
+        source = Image.open(ROOT / "sce_sys/switch-loading-source.png").convert("RGBA")
+        save_tga(source.resize((1920, 1080), Image.Resampling.LANCZOS), "switch-loading.tga")
     if "controller" in wanted:
         save_tga(controller(), "controller.tga")
 

@@ -2613,13 +2613,15 @@ if(EDEN_PS5_OPENGL)
     find_package(PS5OpenGL CONFIG REQUIRED PATHS "${gl46}/lib/cmake/PS5OpenGL" NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
     target_sources(eden-headless PRIVATE "${EDEN_PORT_DIR}/graphics.cpp")
     # The loading screen's shader as a string for the OpenGL window; the Vulkan HUD pass includes
-    # the same two files (vulkan_hud.frag).
+    # the same three files (vulkan_hud.frag).
     file(READ "${EDEN_PORT_DIR}/loading_text.glsl" loading_wordmark)
+    file(READ "${EDEN_PORT_DIR}/loading_sprite.glsl" loading_sprite)
     file(READ "${EDEN_PORT_DIR}/loading_scene.glsl" loading_scene)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-        "${EDEN_PORT_DIR}/loading_text.glsl" "${EDEN_PORT_DIR}/loading_scene.glsl")
+        "${EDEN_PORT_DIR}/loading_text.glsl" "${EDEN_PORT_DIR}/loading_sprite.glsl"
+        "${EDEN_PORT_DIR}/loading_scene.glsl")
     write_derived("${PORT_BUILD_DIR}/include/loading_scene_glsl.h"
-        "// Generated from loading_text.glsl and loading_scene.glsl.\n#pragma once\ninline constexpr const char* kLoadingSceneGlsl = R\"glsl(\n${loading_wordmark}${loading_scene})glsl\";\n")
+        "// Generated from loading_text.glsl, loading_sprite.glsl and loading_scene.glsl.\n#pragma once\ninline constexpr const char* kLoadingSceneGlsl = R\"glsl(\n${loading_wordmark}${loading_sprite}${loading_scene})glsl\";\n")
     target_compile_definitions(eden-headless PRIVATE EDEN_PS5_OPENGL=1)
     target_link_libraries(eden-headless PRIVATE PS5OpenGL::OpenGL glad)
 endif()

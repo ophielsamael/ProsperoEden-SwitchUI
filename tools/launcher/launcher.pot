@@ -594,6 +594,10 @@ msgstr ""
 msgid "Firmware SystemVersion data is missing or unreadable. Install a complete firmware dump."
 msgstr ""
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr ""
+
 #: pe/ui/browse.cpp
 msgid "FOLDERS"
 msgstr ""

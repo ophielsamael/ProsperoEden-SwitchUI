@@ -1792,6 +1792,10 @@ msgstr "สามเหลี่ยม"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "สนธยาเขตร้อน กระจกสีเขียวเข้ม และสีเขียวมะนาว"
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "สีเทาเข้มแบบเรียบและสีฟ้าอมเขียว พร้อมเสียงและหน้าจอโหลดของตัวเอง"
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "ลองอีกครั้ง"

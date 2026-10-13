@@ -1792,6 +1792,10 @@ msgstr "三角鍵"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "熱帶暮色、深綠玻璃與青檸色。"
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "扁平的深灰與青色，附專屬音效與載入畫面。"
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "重試"

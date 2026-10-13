@@ -1792,6 +1792,10 @@ msgstr "Triangolo"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "Crepuscolo tropicale, vetro verde scuro e lime."
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "Grigio scuro piatto e ciano, con suoni e schermata di caricamento propri."
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "Riprova"

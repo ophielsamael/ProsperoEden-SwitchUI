@@ -1792,6 +1792,10 @@ msgstr "Kolmio"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "Trooppinen hämärä, tummanvihreä lasi ja lime."
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "Tasainen tummanharmaa ja syaani, omat äänet ja latausnäyttö."
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "Yritä uudelleen"

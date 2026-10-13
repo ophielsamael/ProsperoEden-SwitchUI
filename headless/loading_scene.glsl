@@ -2,7 +2,8 @@
 // The screen shown while a game loads: the game's cover in the middle with a line of light going
 // round it as the start advances, the step under it, and the cover's colours spread softly behind
 // everything. Drawn entirely in this shader. Shared by both graphics backends, which add their own
-// #version line, a sampler2D named loading_art, loading_text.glsl before this file, and a main().
+// #version line, a sampler2D named loading_art, loading_text.glsl and loading_sprite.glsl before
+// this file, and a main().
 //
 //   vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24])
 //
@@ -13,10 +14,13 @@
 // milliseconds the step has lasted, the size of the cover in loading_art (its width, and its
 // height 16 bits up; 0 when the game has none), the progress in millionths, and from the ninth
 // word the theme's accent, pale accent, deep accent and base colours as 0x01RRGGBB (0: the ones
-// below, which are Canopy's).
+// below, which are Canopy's); then from the thirteenth the first row of the theme's picture in
+// loading_art, its size (as the cover's; 0 when the theme has none), and 1 when the theme draws
+// its sprites (loading_sprite.glsl).
 // loading_art (loading_art.h) holds the cover in its top left corner and, kArtGap texels to its
-// right, a blurred copy of it kArtBlur texels a side. Its first row is the picture's top. A game
-// without a cover gets the same screen around a pane of glass with the progress as a figure.
+// right, a blurred copy of it kArtBlur texels a side; under them the theme's picture. Its first
+// row is the picture's top. A game without a cover gets the same screen around a pane of glass
+// with the progress as a figure.
 
 const vec3 kAccent = vec3(0.663, 0.859, 0.388);
 const vec3 kPale = vec3(0.875, 0.910, 0.651);
@@ -195,6 +199,24 @@ vec3 art_wash(vec2 st, float left, vec2 sheet)
     return g0.y * upper + g1.y * lower;
 }
 
+// The sprites (loading_sprite.glsl) are read in one place too: first which frame, if any, this
+// pixel falls in, where in it, and how strongly it is drawn.
+struct SpritePick
+{
+    int frame;      // -1: no sprite here
+    vec2 st;        // texels from the frame's bottom left
+    float strength;
+};
+
+// Takes the pixel for this frame when it lies inside it; at is the frame's bottom left.
+void pick_sprite(inout SpritePick pick, int frame, vec2 pixel, vec2 at, float texel, float strength)
+{
+    vec2 st = (pixel - at) / texel;
+    vec2 frame_size = vec2(kSpriteSize[frame]);
+    if (st.x >= 0.0 && st.y >= 0.0 && st.x < frame_size.x && st.y < frame_size.y)
+        pick = SpritePick(frame, st, strength);
+}
+
 vec3 theme_colour(uint word, vec3 otherwise)
 {
     if ((word >> 24) == 0u)
@@ -218,6 +240,9 @@ vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24])
     vec3 pale = theme_colour(state[9], kPale);
     vec3 deep = theme_colour(state[10], kDeep);
     vec3 base = theme_colour(state[11], kBase);
+    vec2 picture_size = vec2(float(state[13] & 0xffffu), float(state[13] >> 16));
+    bool has_picture = picture_size.x > 0.0 && picture_size.y > 0.0;
+    bool sprites = state[14] != 0u;
     vec3 glass = base + 0.27 * deep;
     float unit = size.y / 1080.0; // one design pixel
     float middle = 0.5 * size.x;
@@ -226,8 +251,14 @@ vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24])
     Pick pick = Pick(-1, 0, vec2(0.0), 1.0);
 
     // ---- the backdrop: the cover's colours, blurred, dimmed and slowly drifting ----
+    // A theme's picture takes its place, dimmed so the lettering reads over it.
     vec3 color;
-    if (has_art)
+    if (has_picture)
+    {
+        vec2 at = clamp(vec2(uv.x, 1.0 - uv.y) * picture_size, vec2(0.5), picture_size - 0.5);
+        color = textureLod(loading_art, (at + vec2(0.0, float(state[12]))) / sheet, 0.0).rgb * 0.62;
+    }
+    else if (has_art)
     {
         vec2 st = 0.5 + (vec2(uv.x, 1.0 - uv.y) - 0.5) * vec2(0.86, 0.60);
         if (!calm)
@@ -344,10 +375,37 @@ vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24])
         pick_line(pick, stage, kInkNow, pixel, vec2(middle - 0.5 * line_width(stage, headline, 0.20), line_y),
                   headline, 0.20);
 
-    // ---- the four steps as four short lines, each filling with its own share ----
+    // ---- the four steps as four short lines, each filling with its own share; with the theme's
+    // sprites, a mark in each one's place: faint while it waits, its two busy frames taking turns
+    // while it is under way, its done frame once it is done ----
     float pip = 44.0 * unit;
     float pip_gap = 10.0 * unit;
-    if (abs(pixel.y - 346.0 * unit) < 4.0 * unit)
+    SpritePick sprite = SpritePick(-1, vec2(0.0), 0.0);
+    if (sprites)
+    {
+        float mark_texel = 1.6 * unit;
+        float mark_width = float(kSpriteSize[kMark].x) * mark_texel;
+        for (int i = 1; i <= 4; ++i)
+        {
+            float x = middle - 1.5 * (pip + pip_gap) + float(i - 1) * (pip + pip_gap) - 0.5 * mark_width;
+            int frame = i < stage ? kMark + 2 : i == stage && !calm ? kMark + (int(seconds / 0.10) & 1) : kMark;
+            pick_sprite(sprite, frame, pixel, vec2(x, 323.0 * unit), mark_texel, i > stage ? 0.22 : 1.0);
+        }
+
+        // ---- and a bar near the bottom with the walker on the end of its filled part ----
+        float bar_left = middle - 420.0 * unit;
+        float bar_right = middle + 420.0 * unit;
+        vec2 bar_from = vec2(bar_left, 166.0 * unit);
+        vec2 bar_to = vec2(bar_right, 172.0 * unit);
+        float filled_to = mix(bar_left, bar_right, progress);
+        color = mix(color, vec3(1.0), 0.16 * pill(pixel, bar_from, bar_to, 3.0 * unit));
+        color = mix(color, accent, 0.90 * pill(pixel, bar_from, vec2(max(filled_to, bar_left + 6.0 * unit), bar_to.y),
+                                               3.0 * unit));
+        float walker_texel = 1.5 * unit;
+        pick_sprite(sprite, calm ? kWalker : kWalker + (int(seconds / 0.18) & 1), pixel,
+                    vec2(filled_to - 0.5 * float(kSpriteSize[kWalker].x) * walker_texel, bar_to.y), walker_texel, 1.0);
+    }
+    else if (abs(pixel.y - 346.0 * unit) < 4.0 * unit)
     {
         for (int i = 1; i <= 4; ++i)
         {
@@ -421,6 +479,17 @@ vec3 loading_scene(vec2 pixel, vec2 size, float seconds, uint state[24])
                          pick.ink == kInkWord ? 0.66 : pick.ink == kInkFigure ? 0.94 : pick.ink == kInkAccent ? 0.92 :
                          0.56;
         color = mix(color, ink, strength * cover);
+    }
+
+    // ---- the sprites: the one place their frames are read, as the glyph table is ----
+    if (sprite.frame >= 0)
+    {
+        ivec2 frame_size = kSpriteSize[sprite.frame];
+        ivec2 t = ivec2(sprite.st);
+        int at = (frame_size.y - 1 - t.y) * frame_size.x + t.x; // the frames are stored top row first
+        int code = int((sprite_word(sprite.frame, at >> 3) >> uint((at & 7) * 4)) & 0xfu);
+        if (code != 0)
+            color = mix(color, kSpriteColour[kSpritePalette[sprite.frame] + code - 1], sprite.strength);
     }
 
     // Arrive out of the dark; a little noise keeps the gradients from banding.

@@ -105,6 +105,10 @@ inline std::atomic<int64_t> since{0};  // when the step began, in milliseconds
 // The cover in the screen's picture: its width, and its height 16 bits up; 0 without one
 // (loading_art.h).
 inline std::atomic<uint32_t> art_size{0};
+// The theme's picture in it: its first row, and its size as the cover's; 0 without one.
+inline std::atomic<uint32_t> picture_row{0}, picture_size{0};
+// Whether the theme draws its sprites on the screen (loading_sprite.glsl).
+inline std::atomic<uint32_t> sprites{0};
 // The launcher's theme for the screen: its accent, pale accent, deep accent and base colours as
 // 0x01RRGGBB. 0: the shader's own, which are Canopy's.
 inline std::array<std::atomic<uint32_t>, 4> palette{};
@@ -140,7 +144,8 @@ inline double Target(int64_t now) {
 }
 // What the shader is given (the overlay's 24 words): the step, the progress in thousandths,
 // the shaders built and their total, the seconds and then the milliseconds the step has lasted,
-// the cover's size, the progress in millionths, and from the ninth word the theme's colours. The
+// the cover's size, the progress in millionths, from the ninth word the theme's colours, and from
+// the thirteenth where its picture is and whether it draws its sprites. The
 // progress moves towards its target a little with every picture and never back within one start.
 inline std::array<uint32_t, 24> State() {
     static double shown = 0;
@@ -164,6 +169,9 @@ inline std::array<uint32_t, 24> State() {
     state[6] = art_size.load(std::memory_order_relaxed);
     state[7] = static_cast<uint32_t>(std::clamp(shown, 0.0, 1.0) * 1000000.0);
     for (size_t i = 0; i < palette.size(); ++i) state[8 + i] = palette[i].load(std::memory_order_relaxed);
+    state[12] = picture_row.load(std::memory_order_relaxed);
+    state[13] = picture_size.load(std::memory_order_relaxed);
+    state[14] = sprites.load(std::memory_order_relaxed);
     return state;
 }
 } // namespace Loading

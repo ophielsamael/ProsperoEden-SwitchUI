@@ -1792,6 +1792,10 @@ msgstr "Trójkąt"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "Tropikalny zmierzch, ciemnozielone szkło i limonka."
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "Płaska ciemna szarość i cyjan, z własnymi dźwiękami i ekranem ładowania."
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "Spróbuj ponownie"

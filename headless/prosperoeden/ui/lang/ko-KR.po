@@ -1792,6 +1792,10 @@ msgstr "세모"
 msgid "Tropical dusk, dark green glass and lime."
 msgstr "열대의 황혼, 짙은 녹색 유리와 라임색."
 
+#: pe/ui/theme.cpp
+msgid "Flat dark grey and cyan, with its own sounds and loading screen."
+msgstr "플랫한 짙은 회색과 청록색, 전용 사운드와 로딩 화면 포함."
+
 #: pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/update.cpp
 msgid "Try again"
 msgstr "다시 시도"

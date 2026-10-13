@@ -23,6 +23,8 @@ inline constexpr int kArtLargest = 512;  // a larger cover is reduced to this
 struct Art {
     int width{1}, height{1};            // the texture
     int cover_width{}, cover_height{};  // the cover in its top left corner; 0: the game has none
+    // The theme's picture: the row it starts at, from the left edge; 0 wide: the theme has none.
+    int picture_row{}, picture_width{}, picture_height{};
     std::vector<uint8_t> rgba = std::vector<uint8_t>(4);  // rows from the top
 };
 
@@ -146,6 +148,30 @@ inline Art MakeArt(const uint8_t* cover, int width, int height) {
     return art;
 }
 
+// Puts a picture of width x height RGBA pixels (rows from the top) under what the texture holds;
+// a texture without a cover is replaced by it.
+inline void AddPicture(Art& art, const uint8_t* picture, int width, int height) {
+    if (!picture || width <= 0 || height <= 0) return;
+    Art next;
+    next.cover_width = art.cover_width;
+    next.cover_height = art.cover_height;
+    next.picture_row = art.cover_width ? art.height : 0;
+    next.picture_width = width;
+    next.picture_height = height;
+    next.width = std::max(next.picture_row ? art.width : 0, width);
+    next.height = next.picture_row + height;
+    next.rgba.assign(static_cast<size_t>(next.width) * static_cast<size_t>(next.height) * 4, 0);
+    const auto copy = [&](const uint8_t* from, int from_width, int rows, int to_row) {
+        for (int y = 0; y < rows; ++y)
+            std::copy_n(from + static_cast<size_t>(y) * static_cast<size_t>(from_width) * 4,
+                        static_cast<size_t>(from_width) * 4,
+                        next.rgba.data() + (static_cast<size_t>(to_row + y) * static_cast<size_t>(next.width)) * 4);
+    };
+    if (next.picture_row) copy(art.rgba.data(), art.width, art.height, 0);
+    copy(picture, width, height, next.picture_row);
+    art = std::move(next);
+}
+
 // The picture of the start under way. The renderers copy it when they build the loading screen;
 // the state the shader is given (hud.h, Loading::State) says how large the cover in it is.
 inline std::mutex& ArtLock() {
@@ -164,13 +190,39 @@ inline void SetArt(Art next) {
     const std::scoped_lock held{ArtLock()};
     art_size.store(static_cast<uint32_t>(next.cover_width) | static_cast<uint32_t>(next.cover_height) << 16,
                    std::memory_order_relaxed);
+    picture_row.store(static_cast<uint32_t>(next.picture_row), std::memory_order_relaxed);
+    picture_size.store(static_cast<uint32_t>(next.picture_width) | static_cast<uint32_t>(next.picture_height) << 16,
+                       std::memory_order_relaxed);
     ArtStore() = std::move(next);
 }
-// From the cover the launcher keeps of a game; a game without one has no picture.
+// The launcher's theme for the screen (pe/ui/theme.hpp): a picture behind everything, a TGA as the
+// covers are ("": none), and whether it draws its sprites.
+inline std::string& PictureFile() {
+    static std::string path;
+    return path;
+}
+inline void Look(std::string picture, bool with_sprites) {
+    const std::scoped_lock held{ArtLock()};
+    PictureFile() = std::move(picture);
+    sprites.store(with_sprites ? 1u : 0u, std::memory_order_relaxed);
+}
+// From the cover the launcher keeps of a game; a game without one has no cover in the picture.
 inline void SetArtFromCover(const std::string& cover_path) {
     int width = 0;
     int height = 0;
     std::vector<uint8_t> rgba;
-    SetArt(ReadCover(cover_path, width, height, rgba) ? MakeArt(rgba.data(), width, height) : Art{});
+    Art art = ReadCover(cover_path, width, height, rgba) ? MakeArt(rgba.data(), width, height) : Art{};
+    std::string picture;
+    {
+        const std::scoped_lock held{ArtLock()};
+        picture = PictureFile();
+    }
+    if (!picture.empty()) {
+        if (ReadCover(picture, width, height, rgba))
+            AddPicture(art, rgba.data(), width, height);
+        else
+            std::fprintf(stderr, "EDEN_LOADING the theme's picture %s could not be read\n", picture.c_str());
+    }
+    SetArt(std::move(art));
 }
 } // namespace Eden::Loading
