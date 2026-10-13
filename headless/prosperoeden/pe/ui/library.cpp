@@ -192,7 +192,11 @@ void Launcher::check_games_present()
         bool gone = home_.last_exists && !services_.game_exists(home_.last_file);
         for (const Recent &recent : home_.recents)
             gone = gone || !services_.game_exists(recent.file);
-        if (gone)
+        if (gone && th().carousel_home)
+        {
+            read_home(); // the carousel keeps its own focus (sync_carousel)
+        }
+        else if (gone)
         {
             read_home();
             const int recents = static_cast<int>(home_.recents.size());

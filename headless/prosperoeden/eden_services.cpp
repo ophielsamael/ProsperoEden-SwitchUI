@@ -640,7 +640,8 @@ pe::ui::Home EdenServices::home() {
     }
     for (const auto& name : history) {
         if (!IsFile(Eden::AssetsPath("roms/" + name))) continue;
-        home.recents.push_back({name, GameTitle(name), EnsureCover(name)});
+        // Only the four the home screen shows need their covers (the carousel has the Library's).
+        home.recents.push_back({name, GameTitle(name), home.recents.size() < 4 ? EnsureCover(name) : std::string{}});
     }
     const int installed = CountInstalledGames();
     home.system_status = fill(installed == 1 ? tr("{0} game installed") : tr("{0} games installed"),

@@ -2662,6 +2662,7 @@ endif()
                 "${launcher_dir}/pe/ui/qr_code.cpp"
                 "${launcher_dir}/pe/ui/update.cpp"
                 "${launcher_dir}/pe/ui/home.cpp"
+                "${launcher_dir}/pe/ui/home_carousel.cpp"
                 "${launcher_dir}/pe/ui/launcher.cpp"
                 "${launcher_dir}/pe/ui/library.cpp"
                 "${launcher_dir}/pe/ui/settings.cpp"

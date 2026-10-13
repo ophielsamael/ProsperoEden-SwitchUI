@@ -137,6 +137,7 @@ Theme switch_theme()
     t.sounds = "switch";
     t.loading_picture = "switch-loading.tga";
     t.loading_sprites = true;
+    t.carousel_home = true;
     return t;
 }
 

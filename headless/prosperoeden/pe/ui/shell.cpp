@@ -182,7 +182,10 @@ void Launcher::draw_scrims(Canvas &c)
     const Color shade = th().base;
     const float away = tween::clamp01(dim_.value);
     const float home = 1.0f - away;
-    if (home > 0.01f)
+    // The carousel home spreads across the screen: an even shade, darker towards its footer.
+    if (home > 0.01f && th().carousel_home)
+        list.gradient_rect(kScreen, 0.0f, shade.with_alpha(0.40f * home), shade.with_alpha(0.85f * home));
+    else if (home > 0.01f)
     {
         list.hgradient_rect({0.0f, 0.0f, 653.0f, 1080.0f}, 0.0f, shade.with_alpha(0.94f * home),
                             shade.with_alpha(0.78f * home));

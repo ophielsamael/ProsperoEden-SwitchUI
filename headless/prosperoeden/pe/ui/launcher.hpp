@@ -169,6 +169,20 @@ class Launcher
     // opens over the Library at that game, and closing it comes back to the home screen.
     void open_game_settings_from_home(const std::string &file);
 
+    // ---- home as a carousel, when the theme asks for it (home_carousel.cpp) ----
+    // On the home screen with a theme whose home is the carousel: no rail, L1 and R1 page it.
+    bool carousel_home() const;
+    // Keeps carousel_order_ as the game list and the recent games say, its selection on its game.
+    void sync_carousel();
+    // The game the carousel's highlight is on; null without games.
+    Game *carousel_game();
+    void press_carousel_home(Key key);
+    void press_carousel(Key key);
+    void draw_carousel_home(Canvas &c);
+    void draw_carousel(Canvas &c);
+    void draw_section_buttons(Canvas &c);
+    void draw_carousel_controllers(Canvas &c, float right, float cy);
+
     // ---- library and game settings (library.cpp) ----
     // The game list is read beside the menu: reading every game takes a moment.
     void start_scan();
@@ -443,6 +457,13 @@ class Launcher
     tween::Spring rail_open_;                           // 0 icons only .. 1 with their names
     std::array<tween::Spring, kSections> rail_springs_{}; // the highlight on each section
     std::array<tween::Spring, kSections> rail_active_{};  // which section is shown
+    tween::Spring rail_shown_;                          // 0 while the carousel home stands in for it
+
+    // the carousel home: a card per game (indices into games_, the last played first); its focus is
+    // home_focus_ 0, the section buttons under it 1 to kSections - 1 (Library ... About)
+    std::vector<int> carousel_order_;
+    ListView carousel_;
+    tween::Spring carousel_detail_; // the selected game's name and details fade in after a move
 
     // library
     std::vector<Game> games_;

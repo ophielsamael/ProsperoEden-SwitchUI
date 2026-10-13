@@ -253,7 +253,8 @@ struct Home
     std::string last_language;
     int last_mods = 0;
     int last_mods_on = 0;
-    std::vector<Recent> recents; // at most four
+    // The latest first (Eden::kRecentGames at most); only the first four have their covers.
+    std::vector<Recent> recents;
     std::string system_status;
 };
 

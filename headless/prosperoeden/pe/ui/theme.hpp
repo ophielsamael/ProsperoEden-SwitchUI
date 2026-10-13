@@ -108,6 +108,11 @@ struct Theme
     // ---- sound: a folder of ui/sounds with its own cues ("": the launcher's) ----
     const char *sounds = "";
 
+    // ---- where things are: the one part of the layout a theme may choose ----
+    // The home screen as a carousel of every game, the last played first, with the sections as
+    // round buttons under it instead of the rail (home_carousel.cpp).
+    bool carousel_home = false;
+
     // ---- the screen shown while a game loads (drawn by the emulator, headless/loading_scene.glsl) ----
     const char *loading_picture = ""; // in the art folder, behind everything ("": the cover's colours)
     bool loading_sprites = false;     // the walker on a bar and a mark for each step (loading_sprite.glsl)

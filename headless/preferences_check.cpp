@@ -87,8 +87,12 @@ int main() {
     assert(Eden::SaveRecentGame("Demo Racer.xci", file));
     assert(Eden::SaveRecentGame("Sample Quest.nsp", file));
     assert((Eden::LoadRecentGames(file) == std::vector<std::string>{"Sample Quest.nsp", "Demo Racer.xci"}));
-    for (int i = 0; i < 5; ++i) assert(Eden::SaveRecentGame("Game" + std::to_string(i) + ".nsp", file));
-    assert((Eden::LoadRecentGames(file) == std::vector<std::string>{"Game4.nsp", "Game3.nsp", "Game2.nsp", "Game1.nsp"}));
+    // The list keeps the latest kRecentGames: the first one played falls off.
+    for (std::size_t i = 0; i <= Eden::kRecentGames; ++i)
+        assert(Eden::SaveRecentGame("Game" + std::to_string(i) + ".nsp", file));
+    const auto recent = Eden::LoadRecentGames(file);
+    assert(recent.size() == Eden::kRecentGames && recent.front() == "Game" + std::to_string(Eden::kRecentGames) + ".nsp" &&
+           recent.back() == "Game1.nsp");
 
     // Console mode per title.
     constexpr uint64_t racer = 0x0100000000010000, quest = 0x0100000000030000;

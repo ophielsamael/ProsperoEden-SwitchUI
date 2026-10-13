@@ -45,6 +45,8 @@ Launcher::Launcher(Services &services, Textures &textures, const Fonts &fonts, b
     home_focus_ = 0;
     home_springs_[0].snap(1.0f);
     rail_active_[0].snap(1.0f);
+    rail_shown_.snap(carousel_home() ? 0.0f : 1.0f);
+    carousel_detail_.snap(1.0f);
     settings_.wrap = false;
     settings_.visible = 12;
     settings_.reset(12, 0);
@@ -236,6 +238,9 @@ void Launcher::press(Key key)
     // The rail, and the sections it holds: L1 and R1 go from one to the next.
     if (rail_focus_)
         return press_rail(key);
+    // The carousel home has no rail: its own buttons are the sections, L1 and R1 page it.
+    if (carousel_home())
+        return press_carousel_home(key);
     if ((key == Key::l1 || key == Key::r1) && at_section())
     {
         go_section((section() + (key == Key::r1 ? 1 : kSections - 1)) % kSections);
@@ -322,6 +327,15 @@ void Launcher::update(float dt)
         rail_springs_[index].update(dt, t.focus_spring);
         rail_active_[index].target = section() == i ? 1.0f : 0.0f;
         rail_active_[index].update(dt, 14.0f);
+    }
+    rail_shown_.target = carousel_home() ? 0.0f : 1.0f;
+    rail_shown_.update(dt, 14.0f);
+    if (th().carousel_home)
+    {
+        sync_carousel();
+        carousel_.update(dt);
+        carousel_detail_.target = 1.0f;
+        carousel_detail_.update(dt, 14.0f);
     }
     library_.update(dt);
     grid_rows_.update(dt);
@@ -446,7 +460,7 @@ void Launcher::draw_screen(Canvas &c, Screen screen)
     switch (screen)
     {
     case Screen::home:
-        return draw_home(c);
+        return th().carousel_home ? draw_carousel_home(c) : draw_home(c);
     case Screen::library:
         return draw_library(c);
     case Screen::multiplayer:
@@ -648,7 +662,13 @@ void Launcher::draw(gfx::DrawList &list)
                       modal_shown_ == Modal::game_options || mapping_of_game;
     if (page)
         draw_game_page(c, opened);
-    draw_rail(c);
+    // (The carousel home has its section buttons instead.)
+    if (rail_shown_.value > 0.01f)
+    {
+        list.push_opacity(tween::clamp01(rail_shown_.value));
+        draw_rail(c);
+        list.pop_opacity();
+    }
     draw_clock(c);
     if (modal_shown_ != Modal::none && (!page || mapping_of_game))
     {

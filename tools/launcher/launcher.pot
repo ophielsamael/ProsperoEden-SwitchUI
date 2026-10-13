@@ -44,7 +44,7 @@ msgid "A pairing is running already."
 msgstr ""
 
 #. The menu's last section: about this app (its credits, where its files go). One short word.
-#: pe/ui/shell.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/shell.cpp
 msgid "About"
 msgstr ""
 
@@ -132,7 +132,7 @@ msgid "Automatic"
 msgstr ""
 
 #. Button hint: go back one screen.
-#: pe/ui/browse.cpp, pe/ui/game_options.cpp, pe/ui/library.cpp, pe/ui/multiplayer.cpp, pe/ui/pairing.cpp, pe/ui/profiles.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/settings.cpp, pe/ui/update.cpp
+#: pe/ui/browse.cpp, pe/ui/game_options.cpp, pe/ui/home_carousel.cpp, pe/ui/library.cpp, pe/ui/multiplayer.cpp, pe/ui/pairing.cpp, pe/ui/profiles.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/settings.cpp, pe/ui/update.cpp
 msgid "Back"
 msgstr ""
 
@@ -168,7 +168,7 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
-#: pe/ui/library.cpp, pe/ui/remote.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/library.cpp, pe/ui/remote.cpp
 msgid "Cancel download"
 msgstr ""
 
@@ -271,7 +271,7 @@ msgstr ""
 msgid "Connect using a room address, port and password."
 msgstr ""
 
-#: pe/ui/home.cpp, pe/ui/multiplayer.cpp
+#: pe/ui/home.cpp, pe/ui/home_carousel.cpp, pe/ui/multiplayer.cpp
 msgid "Connected"
 msgstr ""
 
@@ -339,7 +339,7 @@ msgstr ""
 msgid "Could not save the folder. Please try again."
 msgstr ""
 
-#: pe/ui/browse.cpp, pe/ui/game_options.cpp, pe/ui/library.cpp, pe/ui/profiles.cpp
+#: pe/ui/browse.cpp, pe/ui/game_options.cpp, pe/ui/home_carousel.cpp, pe/ui/library.cpp, pe/ui/profiles.cpp
 msgid "Could not save. Please try again."
 msgstr ""
 
@@ -425,11 +425,11 @@ msgstr ""
 msgid "Done"
 msgstr ""
 
-#: pe/ui/library.cpp, pe/ui/remote.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/library.cpp, pe/ui/remote.cpp
 msgid "Download"
 msgstr ""
 
-#: pe/ui/library.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/library.cpp
 msgid "Download and play"
 msgstr ""
 
@@ -454,7 +454,7 @@ msgstr ""
 msgid "Download size: {0}"
 msgstr ""
 
-#: pe/ui/library.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/library.cpp
 msgid "Download the game to change its settings."
 msgstr ""
 
@@ -670,7 +670,7 @@ msgstr ""
 msgid "Game files"
 msgstr ""
 
-#: pe/ui/home.cpp, pe/ui/library.cpp
+#: pe/ui/home.cpp, pe/ui/home_carousel.cpp, pe/ui/library.cpp
 msgid "Game settings"
 msgstr ""
 
@@ -892,7 +892,7 @@ msgstr ""
 msgid "Less exact memory transfers to the GPU: faster, and a few games show wrong graphics."
 msgstr ""
 
-#: pe/ui/library.cpp, pe/ui/shell.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/library.cpp, pe/ui/shell.cpp
 msgid "Library"
 msgstr ""
 
@@ -930,11 +930,11 @@ msgid "MODS"
 msgstr ""
 
 #. Changes to a game that the player added: patches, replaced files, cheats. Keep the word 'mod' if the language uses it.
-#: pe/ui/library.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/library.cpp
 msgid "Mods"
 msgstr ""
 
-#: pe/ui/home.cpp, pe/ui/multiplayer.cpp, pe/ui/shell.cpp
+#: pe/ui/home.cpp, pe/ui/home_carousel.cpp, pe/ui/multiplayer.cpp, pe/ui/shell.cpp
 msgid "Multiplayer"
 msgstr ""
 
@@ -951,7 +951,7 @@ msgid "Muted"
 msgstr ""
 
 #. Button hint: move the highlight.
-#: pe/ui/update.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/update.cpp
 msgid "Navigate"
 msgstr ""
 
@@ -1015,7 +1015,7 @@ msgstr ""
 msgid "No public rooms are available."
 msgstr ""
 
-#: pe/ui/library.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/library.cpp
 msgid "No ROM files found."
 msgstr ""
 
@@ -1116,7 +1116,7 @@ msgid "Output resolution"
 msgstr ""
 
 #. Button hint: jump a page of the list (L1 / R1).
-#: pe/ui/browse.cpp, pe/ui/multiplayer.cpp, pe/ui/update.cpp
+#: pe/ui/browse.cpp, pe/ui/home_carousel.cpp, pe/ui/multiplayer.cpp, pe/ui/update.cpp
 msgid "Page"
 msgstr ""
 
@@ -1163,7 +1163,7 @@ msgid "Performance"
 msgstr ""
 
 #. Button and button hint: start the game shown. Keep it to one short word.
-#: pe/ui/home.cpp, pe/ui/library.cpp
+#: pe/ui/home.cpp, pe/ui/home_carousel.cpp, pe/ui/library.cpp
 msgid "Play"
 msgstr ""
 
@@ -1175,7 +1175,7 @@ msgstr ""
 msgid "Play as"
 msgstr ""
 
-#: pe/ui/library.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/library.cpp
 msgid "Play when downloaded"
 msgstr ""
 
@@ -1250,7 +1250,7 @@ msgstr ""
 msgid "Profile {0}"
 msgstr ""
 
-#: pe/ui/profiles.cpp, pe/ui/settings.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/profiles.cpp, pe/ui/settings.cpp
 msgid "Profiles"
 msgstr ""
 
@@ -1322,7 +1322,7 @@ msgstr ""
 msgid "Reading the game lists..."
 msgstr ""
 
-#: pe/ui/library.cpp, pe/ui/remote.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/library.cpp, pe/ui/remote.cpp
 msgid "Reading..."
 msgstr ""
 
@@ -1457,7 +1457,7 @@ msgstr ""
 msgid "save-sync.json cannot be read: correct it over FTP first."
 msgstr ""
 
-#: pe/ui/game_options.cpp, pe/ui/library.cpp
+#: pe/ui/game_options.cpp, pe/ui/home_carousel.cpp, pe/ui/library.cpp
 msgid "Saved for this game. Applies on next launch."
 msgstr ""
 
@@ -1502,7 +1502,7 @@ msgid "Sections"
 msgstr ""
 
 #. Button hint: choose the highlighted item (not the Select button).
-#: pe/ui/game_options.cpp, pe/ui/home.cpp, pe/ui/library.cpp, pe/ui/multiplayer.cpp, pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/settings.cpp, pe/ui/update.cpp
+#: pe/ui/game_options.cpp, pe/ui/home.cpp, pe/ui/home_carousel.cpp, pe/ui/library.cpp, pe/ui/multiplayer.cpp, pe/ui/pairing.cpp, pe/ui/remote.cpp, pe/ui/save_sync.cpp, pe/ui/settings.cpp, pe/ui/update.cpp
 msgid "Select"
 msgstr ""
 
@@ -1520,11 +1520,11 @@ msgstr ""
 msgid "Server too old for save sync"
 msgstr ""
 
-#: pe/ui/home.cpp, pe/ui/settings.cpp, pe/ui/shell.cpp
+#: pe/ui/home.cpp, pe/ui/home_carousel.cpp, pe/ui/settings.cpp, pe/ui/shell.cpp
 msgid "Settings"
 msgstr ""
 
-#: eden_services.cpp, host/fake_services.cpp
+#: eden_services.cpp, host/fake_services.cpp, pe/ui/home_carousel.cpp
 msgid "Setup required"
 msgstr ""
 
@@ -1768,7 +1768,7 @@ msgstr ""
 msgid "This game has no save to export yet."
 msgstr ""
 
-#: pe/ui/library.cpp
+#: pe/ui/home_carousel.cpp, pe/ui/library.cpp
 msgid "This game's settings cannot be saved (no title ID)."
 msgstr ""
 
