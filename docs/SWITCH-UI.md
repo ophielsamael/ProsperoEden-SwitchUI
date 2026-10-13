@@ -244,10 +244,18 @@ Todo lo de este apartado es del tema **Switch**: el tema Canopy sigue con lo suy
 
 ### 4.1 Sonidos del menú
 
-Carpeta `headless/prosperoeden/ui/sounds/switch/` (créala). Si no existe o está vacía, el tema usa
-los sonidos del launcher (`ui/sounds/`). Cada sonido es `<nombre>_NN.wav` (`NN` desde `01`; con
-varios, se alternan). Formato **WAV PCM 16 bits, 48 000 Hz**, mono o estéreo. Pon todos los de la
-lista: si la carpeta existe, solo se usan los suyos.
+Carpeta `headless/prosperoeden/ui/sounds/switch/`. Si no existe o está vacía, el tema usa los
+sonidos del launcher (`ui/sounds/`). Si existe, **solo se usan los suyos**: un sonido que falte en
+ella no suena como el del launcher. Lo más cómodo es crearla con una copia de los de serie y luego
+ir cambiando los que quieras (en PowerShell, desde la carpeta del repositorio):
+
+```powershell
+New-Item -ItemType Directory -Force headless/prosperoeden/ui/sounds/switch
+Copy-Item headless/prosperoeden/ui/sounds/*.wav headless/prosperoeden/ui/sounds/switch/
+```
+
+Cada sonido es `<nombre>_NN.wav` (`NN` desde `01`; con varios, se alternan). Formato **WAV PCM
+16 bits, 48 000 Hz**, mono o estéreo.
 
 | Archivo | Cuándo suena |
 |---|---|
@@ -285,7 +293,14 @@ Tres archivos fuente en `sce_sys/`:
 | `switch-icon-source.png` | El logo del launcher (cuadrado): en la barra lateral y en los juegos sin carátula |
 | `switch-loading-source.png` | La imagen de la pantalla de carga (16:9) |
 
-Los tres se convierten de una vez:
+Tienen que ser **PNG con esos nombres exactos**. Si tu imagen es JPG o WEBP, conviértela con FFmpeg
+al copiarla, por ejemplo:
+
+```powershell
+ffmpeg -y -i "mi imagen de carga.webp" sce_sys/switch-loading-source.png
+```
+
+Los tres se convierten de una vez (vuelve a hacerlo cada vez que cambies cualquiera de ellos):
 
 ```powershell
 py tools/launcher/render-art.py switch
